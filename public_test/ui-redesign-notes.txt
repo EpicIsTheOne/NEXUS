@@ -1,0 +1,2 @@
+TODO Memory sidebar ui
+Add memory-sidebar inside app-shell after chat views.

@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>NEXUS API Docs</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body.docs-page {
+      overflow: auto;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(255, 42, 109, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(5, 217, 232, 0.08), transparent 22%),
+        linear-gradient(180deg, #0b0d13, #111522 60%, #0d1018);
+    }
+    .docs-shell {
+      width: min(1100px, calc(100% - 32px));
+      margin: 32px auto 64px;
+      display: grid;
+      gap: 18px;
+    }
+    .docs-hero,
+    .docs-card {
+      border: 1px solid var(--border);
+      background: rgba(10, 12, 20, 0.88);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.34);
+      padding: 22px;
+    }
+    .docs-hero h1,
+    .docs-card h2,
+    .docs-card h3 {
+      margin-top: 0;
+    }
+    .docs-hero p,
+    .docs-card p,
+    .docs-card li {
+      color: #c7cad4;
+      line-height: 1.6;
+    }
+    .docs-kicker {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 0.8rem;
+      margin-bottom: 8px;
+    }
+    .docs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+    .docs-card code,
+    .docs-card pre,
+    .docs-hero code {
+      font-family: inherit;
+    }
+    .inline-code {
+      padding: 2px 6px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+    }
+    pre.docs-code {
+      margin: 12px 0 0;
+      padding: 16px;
+      overflow: auto;
+      background: #07090f;
+      border: 1px solid rgba(5, 217, 232, 0.18);
+      color: #e8ebf5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+    .docs-list {
+      margin: 10px 0 0;
+      padding-left: 18px;
+    }
+    .docs-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.95rem;
+    }
+    .docs-table th,
+    .docs-table td {
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+    .docs-table th {
+      color: #fff;
+      background: rgba(255,255,255,0.04);
+    }
+    .docs-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .docs-actions a {
+      text-decoration: none;
+    }
+    .docs-note {
+      border-left: 3px solid var(--accent);
+      padding-left: 12px;
+      margin-top: 12px;
+      color: #d7dae4;
+    }
+    @media (max-width: 720px) {
+      .docs-shell { width: min(100% - 20px, 1100px); margin-top: 18px; }
+      .docs-hero, .docs-card { padding: 16px; }
+      pre.docs-code { font-size: 0.84rem; }
+    }
+  </style>
+</head>
+<body class="docs-page">
+  <main class="docs-shell">
+    <section class="docs-hero">
+      <div class="docs-kicker">NEXUS API v1</div>
+      <h1>NEXUS API docs</h1>
+      <p>Use the AIChat/NEXUS character system from scripts and apps. This page shows how to log in, get <span class="inline-code">characterId</span> values, create a history, send normal chat requests, and stream responses from Python.</p>
+      <div class="docs-actions">
+        <a class="mini-btn" href="/aichat/">Back to app</a>
+        <a class="mini-btn secondary" href="/aichat/api/nexus/characters" target="_blank" rel="noopener noreferrer">Open characters JSON</a>
+        <a class="mini-btn secondary" href="/aichat/api/nexus/health" target="_blank" rel="noopener noreferrer">Open health JSON</a>
+      </div>
+      <p class="docs-note">NEXUS base path: <span class="inline-code">https://techexplore.us/aichat/api/nexus</span><br />TTS tagger endpoint: <span class="inline-code">https://techexplore.us/aichat/api/tts/tag</span><br />Tagged audio endpoint: <span class="inline-code">https://techexplore.us/aichat/api/tts/audio</span><br />Auth for v1 uses the same login session as the site. API keys are not required/enabled right now.</p>
+    </section>
+
+    <section class="docs-grid">
+      <article class="docs-card">
+        <h2>Endpoints</h2>
+        <table class="docs-table">
+          <tr><th>Method</th><th>Path</th><th>Use</th></tr>
+          <tr><td>GET</td><td><code>/api/nexus/health</code></td><td>Basic status check</td></tr>
+          <tr><td>GET</td><td><code>/api/nexus/characters</code></td><td>List characters and their IDs</td></tr>
+          <tr><td>POST</td><td><code>/api/nexus/histories</code></td><td>Create a new saved history</td></tr>
+          <tr><td>GET</td><td><code>/api/nexus/histories/:historyId</code></td><td>Fetch one saved history</td></tr>
+          <tr><td>POST</td><td><code>/api/nexus/chat</code></td><td>Normal or streaming chat</td></tr>
+          <tr><td>POST</td><td><code>/api/tts/tag</code></td><td>Return the same Fish-style tagged TTS text used by chat voice playback</td></tr>
+          <tr><td>POST</td><td><code>/api/tts/audio</code></td><td>Tag text, synthesize it with a Fish Audio voice ID, and return audio bytes</td></tr>
+        </table>
+      </article>
+
+      <article class="docs-card">
+        <h2>How to get the IDs you need</h2>
+        <ul class="docs-list">
+          <li><strong>characterId</strong>: call <span class="inline-code">GET /api/nexus/characters</span>. Every returned character has an <span class="inline-code">id</span>.</li>
+          <li><strong>historyId</strong>: call <span class="inline-code">POST /api/nexus/histories</span>. The response returns <span class="inline-code">historyId</span>.</li>
+          <li>You can also skip pre-creating a history and use <span class="inline-code">createHistory: true</span> in <span class="inline-code">POST /api/nexus/chat</span>.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: login and get character IDs</h2>
+      <pre class="docs-code">import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+
+# 1) Log in using the same account you use on the site
+login = s.post(
+    f"{BASE}/api/auth/login",
+    json={"username": "Epic", "password": "YOUR_PASSWORD"},
+)
+login.raise_for_status()
+print("Logged in:", login.json())
+
+# 2) Get all characters
+characters_res = s.get(f"{BASE}/api/nexus/characters")
+characters_res.raise_for_status()
+characters = characters_res.json()["characters"]
+
+# 3) Print names + IDs so you can pick one
+for c in characters[:10]:
+    print(c["name"], "->", c["id"])
+
+character_id = characters[0]["id"]
+print("Using characterId:", character_id)</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: create a history and get <code>historyId</code></h2>
+      <pre class="docs-code">import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+
+s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
+
+character_id = "PUT_CHARACTER_ID_HERE"
+
+history_res = s.post(
+    f"{BASE}/api/nexus/histories",
+    json={
+        "characterId": character_id,
+        "name": "My Python test history"
+    },
+)
+history_res.raise_for_status()
+history = history_res.json()
+
+history_id = history["historyId"]
+print("historyId:", history_id)
+print(history)</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: normal chat with an existing history</h2>
+      <pre class="docs-code">import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+
+s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
+
+character_id = "PUT_CHARACTER_ID_HERE"
+history_id = "PUT_HISTORY_ID_HERE"
+
+chat_res = s.post(
+    f"{BASE}/api/nexus/chat",
+    json={
+        "characterId": character_id,
+        "historyId": history_id,
+        "message": "Say hello in one short sentence."
+    },
+)
+chat_res.raise_for_status()
+chat = chat_res.json()
+print(chat["response"])
+print(chat)</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: one-off chat without a saved history</h2>
+      <pre class="docs-code">import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+
+s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
+
+character_id = "PUT_CHARACTER_ID_HERE"
+
+chat_res = s.post(
+    f"{BASE}/api/nexus/chat",
+    json={
+        "characterId": character_id,
+        "message": "Introduce yourself in one paragraph."
+    },
+)
+chat_res.raise_for_status()
+print(chat_res.json()["response"])</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: create a history automatically from chat</h2>
+      <pre class="docs-code">import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+
+s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
+
+character_id = "PUT_CHARACTER_ID_HERE"
+
+chat_res = s.post(
+    f"{BASE}/api/nexus/chat",
+    json={
+        "characterId": character_id,
+        "message": "Start the scene.",
+        "createHistory": True,
+        "name": "Auto-created from API"
+    },
+)
+chat_res.raise_for_status()
+data = chat_res.json()
+
+print("historyId:", data.get("historyId"))
+print("response:", data["response"])</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: use your own message history</h2>
+      <pre class="docs-code">import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+
+s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
+
+character_id = "PUT_CHARACTER_ID_HERE"
+
+chat_res = s.post(
+    f"{BASE}/api/nexus/chat",
+    json={
+        "characterId": character_id,
+        "messages": [
+            {"role": "user", "content": "Hey"},
+            {"role": "assistant", "content": "Hi there."},
+            {"role": "user", "content": "Continue this scene."}
+        ]
+    },
+)
+chat_res.raise_for_status()
+print(chat_res.json()["response"])</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: streaming</h2>
+      <p>Streaming uses Server-Sent Events style output. Watch for <span class="inline-code">event: delta</span> chunks and the final <span class="inline-code">event: done</span>.</p>
+      <pre class="docs-code">import json
+import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+
+s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
+
+character_id = "PUT_CHARACTER_ID_HERE"
+history_id = "PUT_HISTORY_ID_HERE"
+
+with s.post(
+    f"{BASE}/api/nexus/chat",
+    json={
+        "characterId": character_id,
+        "historyId": history_id,
+        "message": "Say hello in one short sentence.",
+        "stream": True,
+    },
+    stream=True,
+) as r:
+    r.raise_for_status()
+    current_event = None
+
+    for raw_line in r.iter_lines(decode_unicode=True):
+        if not raw_line:
+            continue
+
+        if raw_line.startswith("event: "):
+            current_event = raw_line[len("event: "):]
+        elif raw_line.startswith("data: "):
+            payload = json.loads(raw_line[len("data: "):])
+
+            if current_event == "meta":
+                print("model:", payload)
+            elif current_event == "delta":
+                print(payload.get("delta", ""), end="", flush=True)
+            elif current_event == "retry":
+                print("\nretry info:", payload)
+            elif current_event == "done":
+                print("\n\nfinal payload:")
+                print(payload)
+            elif current_event == "error":
+                print("\nerror:", payload)</pre>
+    </section>
+
+
+
+    <section class="docs-card">
+      <h2>TTS tagger API</h2>
+      <p>The TTS tagger endpoint takes raw dialogue or RP-style text and returns the same tagged text the chat voice system sends into Fish TTS. This is useful when you want to preview or reuse the message tagger without generating audio.</p>
+      <p class="docs-note">For now, this endpoint uses the normal AIChat login session cookie. No API key is required or enabled.</p>
+      <table class="docs-table">
+        <tr><th>Method</th><th>Path</th><th>Use</th></tr>
+        <tr><td>POST</td><td><code>/api/tts/tag</code></td><td>Tag text for TTS delivery</td></tr>
+      </table>
+      <h3>Request body</h3>
+      <table class="docs-table">
+        <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+        <tr><td><code>text</code></td><td>string</td><td>yes</td><td>The raw text to tag. Can include quoted dialogue and asterisk narration.</td></tr>
+        <tr><td><code>characterId</code></td><td>string</td><td>no</td><td>Optional. When provided, the tagger can use that character's settings, including narration-reading behavior.</td></tr>
+        <tr><td><code>includeAsteriskNarration</code></td><td>boolean</td><td>no</td><td>Defaults to false. When true, asterisk narration is included in the spoken/tagged text.</td></tr>
+        <tr><td><code>stream</code></td><td>boolean</td><td>no</td><td>When true, the endpoint attempts Fish realtime streaming before falling back to full audio generation.</td></tr>
+      </table>
+      <h3>Example request</h3>
+      <pre class="docs-code">POST https://techexplore.us/aichat/api/tts/tag
+Content-Type: application/json
+
+{
+  "text": "*Miyabi lets out a loud gasp.* \"AAAAAAAAAAHHHNNNNN!!!\"",
+  "characterId": "local-miyabi"
+}</pre>
+      <h3>Example response</h3>
+      <pre class="docs-code">{
+  "ok": true,
+  "input": "*Miyabi lets out a loud gasp.* \"AAAAAAAAAAHHHNNNNN!!!\"",
+  "text": "[loud moan] [loud moan] [loud moan] [loud] [loud] Aaaahn!!!!!",
+  "taggedText": "[loud moan] [loud moan] [loud moan] [loud] [loud] Aaaahn!!!!!",
+  "tags": ["loud moan", "loud"],
+  "tag": "[loud moan] [loud moan] [loud moan] [loud] [loud]",
+  "spokenText": "AAAAAAAAAAHHHNNNNN!!!"
+}</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: tag text for TTS</h2>
+      <pre class="docs-code">import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+
+# Uses the same site login session. No API key is required/enabled right now.
+s.post(
+    f"{BASE}/api/auth/login",
+    json={"username": "Epic", "password": "YOUR_PASSWORD"},
+).raise_for_status()
+
+payload = {
+    "text": "*Miyabi lets out a loud gasp.* \"AAAAAAAAAAHHHNNNNN!!!\"",
+    "characterId": "local-miyabi",
+}
+
+res = s.post(f"{BASE}/api/tts/tag", json=payload)
+res.raise_for_status()
+
+data = res.json()
+print("Tagged text:", data["taggedText"])
+print("Tags:", data["tags"])
+print("Spoken text:", data["spokenText"])</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: tag plain text without a character</h2>
+      <pre class="docs-code">import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
+
+res = s.post(
+    f"{BASE}/api/tts/tag",
+    json={"text": "She sighs softly. \"Fine, I’ll help.\""},
+)
+res.raise_for_status()
+print(res.json()["taggedText"])</pre>
+    </section>
+
+
+
+    <section class="docs-card">
+      <h2>Tagged Fish audio API</h2>
+      <p>This endpoint takes raw text plus a Fish Audio voice/reference ID, runs the same message tagger used by chat voice playback, sends the tagged text to Fish, and returns the audio file directly.</p>
+      <p class="docs-note">For now, this endpoint uses the normal AIChat login session cookie. No API key is required or enabled.</p>
+      <table class="docs-table">
+        <tr><th>Method</th><th>Path</th><th>Returns</th></tr>
+        <tr><td>POST</td><td><code>/api/tts/audio</code></td><td>Audio bytes, usually <code>audio/mpeg</code> for MP3</td></tr>
+      </table>
+      <h3>Request body</h3>
+      <table class="docs-table">
+        <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+        <tr><td><code>text</code></td><td>string</td><td>yes</td><td>Raw text to tag and synthesize.</td></tr>
+        <tr><td><code>voiceId</code></td><td>string</td><td>yes</td><td>Fish Audio voice/reference ID. Aliases <code>fishReferenceId</code> and <code>referenceId</code> also work.</td></tr>
+        <tr><td><code>format</code></td><td>string</td><td>no</td><td><code>mp3</code>, <code>wav</code>, <code>opus</code>, or <code>pcm</code>. Defaults to <code>mp3</code>.</td></tr>
+        <tr><td><code>latency</code></td><td>string</td><td>no</td><td><code>low</code>, <code>normal</code>, or <code>balanced</code>. Defaults to <code>low</code>.</td></tr>
+        <tr><td><code>characterId</code></td><td>string</td><td>no</td><td>Optional context for the tagger. The voice still comes from <code>voiceId</code>.</td></tr>
+        <tr><td><code>includeAsteriskNarration</code></td><td>boolean</td><td>no</td><td>Defaults to false. When true, asterisk narration is included in the spoken/tagged text.</td></tr>
+        <tr><td><code>stream</code></td><td>boolean</td><td>no</td><td>When true, the endpoint attempts Fish realtime streaming before falling back to full audio generation.</td></tr>
+      </table>
+      <h3>Response headers</h3>
+      <ul class="docs-list">
+        <li><code>Content-Type</code>: audio content type, usually <code>audio/mpeg</code>.</li>
+        <li><code>X-TTS-Tagged-Text</code>: URL-encoded tagged text that was sent to Fish.</li>
+        <li><code>X-TTS-Emotion-Tag</code>: the main Fish-style tag string.</li>
+        <li><code>X-TTS-Tags</code>: URL-encoded JSON array of tags.</li>
+        <li><code>X-TTS-Spoken-Text</code>: URL-encoded cleaned spoken text.</li>
+        <li><code>X-TTS-Mode</code>: <code>stream</code>, <code>full</code>, or <code>cache</code>.</li>
+      </ul>
+      <h3>Example request</h3>
+      <pre class="docs-code">POST https://techexplore.us/aichat/api/tts/audio
+Content-Type: application/json
+
+{
+  "text": "*She sighs softly.* \"Fine, I’ll help.\"",
+  "voiceId": "98655a12fa944e26b274c535e5e03842",
+  "format": "mp3"
+}</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: generate tagged Fish audio</h2>
+      <pre class="docs-code">from urllib.parse import unquote
+import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+
+# Uses the same site login session. No API key is required/enabled right now.
+s.post(
+    f"{BASE}/api/auth/login",
+    json={"username": "Epic", "password": "YOUR_PASSWORD"},
+).raise_for_status()
+
+payload = {
+    "text": "*She sighs softly.* \"Fine, I’ll help.\"",
+    "voiceId": "98655a12fa944e26b274c535e5e03842",
+    "format": "mp3",
+}
+
+res = s.post(f"{BASE}/api/tts/audio", json=payload)
+res.raise_for_status()
+
+with open("tagged-voice.mp3", "wb") as f:
+    f.write(res.content)
+
+print("Saved tagged-voice.mp3")
+print("Tagged text:", unquote(res.headers.get("X-TTS-Tagged-Text", "")))
+print("Tags:", unquote(res.headers.get("X-TTS-Tags", "[]")))
+print("Spoken text:", unquote(res.headers.get("X-TTS-Spoken-Text", "")))</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Python example: tag first, then generate audio</h2>
+      <pre class="docs-code">from urllib.parse import unquote
+import requests
+
+BASE = "https://techexplore.us/aichat"
+s = requests.Session()
+s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
+
+text = "*She laughs softly.* \"You’re impossible.\""
+voice_id = "98655a12fa944e26b274c535e5e03842"
+
+# Preview the tagger output
+preview = s.post(f"{BASE}/api/tts/tag", json={"text": text})
+preview.raise_for_status()
+print("Preview:", preview.json()["taggedText"])
+
+# Generate audio using the same tagger pipeline server-side
+audio = s.post(
+    f"{BASE}/api/tts/audio",
+    json={"text": text, "voiceId": voice_id, "format": "mp3"},
+)
+audio.raise_for_status()
+open("voice.mp3", "wb").write(audio.content)
+print("Audio tagged as:", unquote(audio.headers.get("X-TTS-Tagged-Text", "")))</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Example responses</h2>
+      <pre class="docs-code"># GET /api/nexus/characters
+{
+  "ok": true,
+  "characters": [
+    {
+      "id": "local-some-character",
+      "name": "Astra",
+      "summary": "Sharp, fast, chaotic.",
+      "avatar": "/aichat/assets/local-characters/...",
+      "tags": ["Roleplay", "Fantasy"],
+      "source": "local"
+    }
+  ]
+}
+
+# POST /api/nexus/histories
+{
+  "ok": true,
+  "historyId": "mons1234-abcd",
+  "characterId": "local-some-character",
+  "personaId": "",
+  "name": "My Python test history",
+  "createdAt": 1777690000000,
+  "updatedAt": 1777690000000,
+  "messages": []
+}
+
+# POST /api/nexus/chat
+{
+  "ok": true,
+  "historyId": "mons1234-abcd",
+  "characterId": "local-some-character",
+  "personaId": "",
+  "response": "Hello there.",
+  "model": "pkrd/cosmosrp-2.1:it",
+  "provider": "local",
+  "createdHistory": false,
+  "usage": { "messageCount": 2 }
+}</pre>
+    </section>
+
+    <section class="docs-card">
+      <h2>Quick notes</h2>
+      <ul class="docs-list">
+        <li>If you already know the site account login, you can use it directly from Python with <span class="inline-code">requests.Session()</span>.</li>
+        <li>If you want a fresh saved thread first, call <span class="inline-code">POST /api/nexus/histories</span>.</li>
+        <li>If you just want to fire one request and save it automatically, use <span class="inline-code">createHistory: true</span>.</li>
+        <li>If you need a specific history later, fetch it with <span class="inline-code">GET /api/nexus/histories/:historyId?characterId=...</span>.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

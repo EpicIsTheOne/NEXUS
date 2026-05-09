@@ -1,0 +1,56 @@
+[
+  {
+    "file": "local-amillya.json",
+    "name": "Amillya",
+    "score": 30,
+    "similarity": 0.07265774378585087,
+    "importSource": "chub",
+    "avatarChanged": true,
+    "avatarSourcePath": "/characters/avatars/amillya.webp"
+  },
+  {
+    "file": "local-automatic-bot-creator-assistant.json",
+    "name": "Automatic Bot Creator - Assistant",
+    "score": 74,
+    "similarity": 0.11065362840967576,
+    "importSource": "chub",
+    "avatarChanged": false,
+    "avatarSourcePath": "/characters/avatars/automatic-bot-creator-assistant.webp"
+  },
+  {
+    "file": "local-firefly.json",
+    "name": "Firefly",
+    "score": 71,
+    "similarity": 0.11065362840967576,
+    "importSource": "github",
+    "avatarChanged": true,
+    "avatarSourcePath": "/characters/avatars/default-placeholder.svg"
+  },
+  {
+    "file": "local-mia.json",
+    "name": "Mia",
+    "score": 25,
+    "similarity": 0.09221311475409837,
+    "importSource": "chub",
+    "avatarChanged": true,
+    "avatarSourcePath": "/characters/avatars/mia.webp"
+  },
+  {
+    "file": "local-modern-life-rpg.json",
+    "name": "modern life RPG",
+    "score": 61,
+    "similarity": 0.09221311475409837,
+    "importSource": "chub",
+    "avatarChanged": true,
+    "avatarSourcePath": "/characters/avatars/modern-life-rpg.webp"
+  },
+  {
+    "file": "local-naruto-roleplay.json",
+    "name": "Naruto Roleplay",
+    "score": 76,
+    "similarity": 0.09972730814179977,
+    "importSource": "chub",
+    "avatarChanged": true,
+    "avatarSourcePath": "/characters/avatars/naruto-roleplay.webp"
+  }
+]

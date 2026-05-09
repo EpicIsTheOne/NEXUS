@@ -1,0 +1,8 @@
+{
+  "name": "aichat-chub-automation",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.53.2"
+  }
+}

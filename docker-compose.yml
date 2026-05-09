@@ -1,0 +1,38 @@
+services:
+  aichat:
+    build: .
+    container_name: aichat-mvp
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      PORT: "3000"
+      BASE_PATH: "/aichat"
+      BACKEND_BASE_URL: "http://100.72.220.117:1234/v1"
+      DEFAULT_MODEL: "pkrd/cosmosrp-2.1:it"
+      DEFAULT_PROVIDER_LABEL: "llm"
+      ST_DATA_DIR: "/mounted/st-data/default-user"
+      OPENCLAW_AUTH_PROFILES_PATH: "/openclaw-auth-profiles.json"
+      OPENCLAW_BRIDGE_URL: "http://host.docker.internal:3101"
+      OPENCLAW_BRIDGE_SECRET: "${OPENCLAW_BRIDGE_SECRET:-}"
+    volumes:
+      - ../sillytavern-stack/data:/mounted/st-data:ro
+      - ./data:/app/data
+      - /root/.openclaw/agents/orchestrator/agent/auth-profiles.json:/openclaw-auth-profiles.json:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - proxy
+    labels:
+      com.blobevm.managed: "1"
+      traefik.enable: "true"
+      traefik.docker.network: "proxy"
+      traefik.http.routers.aichat.entrypoints: "websecure"
+      traefik.http.routers.aichat.rule: "Host(`techexplore.us`) && PathPrefix(`/aichat`)"
+      traefik.http.routers.aichat.tls: "true"
+      traefik.http.routers.aichat.tls.certresolver: "myresolver"
+      traefik.http.services.aichat.loadbalancer.server.port: "3000"
+
+networks:
+  proxy:
+    external: true

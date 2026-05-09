@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=overlays-content" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b0d13" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="NEXUS" />
+  <title>ＮＥＸＵＳ</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css?v=user-placeholder-v37" />
+</head>
+<body>
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-card">
+      <div class="eyebrow">Access required</div>
+      <h1>ＮＥＸＵＳ</h1>
+      <p>Log in before touching characters, history, or anything fun.</p>
+      <form id="login-form" class="settings-grid single-column-form auth-form" autocomplete="off" data-lpignore="true" data-1p-ignore="true">
+        <input type="text" name="email" autocomplete="username" tabindex="-1" aria-hidden="true" class="autofill-decoy" />
+        <input type="password" name="password" autocomplete="current-password" tabindex="-1" aria-hidden="true" class="autofill-decoy" />
+        <label class="field"><span>Username</span><input id="login-username" name="nexus-login-user" autocomplete="username" required placeholder="Epic" /></label>
+        <label class="field"><span>Password</span><input id="login-password" name="nexus-login-pass" type="password" autocomplete="current-password" required placeholder="••••••••" /></label>
+        <div id="login-error" class="meta-line hidden"></div>
+        <div class="dialog-actions split-actions auth-actions">
+          <button type="submit" id="login-submit">Log in</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-shell" class="app-shell panel-open library-collapsed hidden">
+    <aside class="sidebar left-sidebar recent-sidebar">
+      <div class="sidebar-header compact-sidebar-header">
+        <div class="brand-line compact-brand-line">
+          <div>
+            <h1>Recent chats</h1>
+
+          </div>
+          <div class="section-actions">
+            <button id="sidebar-library-btn" class="mini-btn secondary" type="button" title="Jump back to the library">Library</button>
+            <button id="library-close" class="icon-button" title="Close sidebar" aria-label="Back to chat">×</button>
+          </div>
+        </div>
+      </div>
+
+      <section class="sidebar-block recent-sidebar-block">
+        <div class="sidebar-section-label">Recent chats</div>
+        <div id="recent-list" class="recent-list"></div>
+      </section>
+    </aside>
+
+    <div id="library-backdrop" class="library-backdrop"></div>
+
+    <main class="main-panel">
+<div class="floating-profile-wrap profile-menu-wrap">
+      <button id="open-library" class="profile-button floating-profile-button secondary">Recents</button>
+      <div class="header-center-info">
+        <div id="current-character" class="floating-title">Choose a character</div>
+        <div id="backend-status" class="subtitle floating-status">Checking backend…</div>
+      </div>
+      <div class="header-right-controls">
+        <button id="memory-header-toggle" class="profile-button floating-profile-button memory-header-toggle" title="Memory">🧠</button>
+        <button id="tts-status-button" class="profile-button floating-profile-button tts-status-button tts-unavailable" type="button" aria-label="Autoplay voice off" title="Autoplay voice off">TTS</button>
+        <button id="profile-button" class="profile-button floating-profile-button">Profile ▾</button>
+      </div>
+      <div id="profile-menu" class="profile-menu hidden">
+        <div class="mobile-profile-page-header">
+          <button id="close-profile-page" class="icon-button" type="button" aria-label="Back to chat">‹</button>
+          <div>
+            <div class="eyebrow">Profile</div>
+            <h2>Settings</h2>
+          </div>
+          <span aria-hidden="true"></span>
+        </div>
+        <div id="auth-user-chip" class="auth-user-chip"></div>
+        <label class="field">
+          <span>Persona</span>
+          <select id="persona-select"></select>
+        </label>
+        <label class="field admin-only">
+          <span>Local profile</span>
+          <select id="local-profile-select"></select>
+        </label>
+        <label class="field">
+          <span>Global model</span>
+          <div class="select-row">
+            <select id="model-select"></select>
+            <button id="refresh-models" class="icon-button" title="Refresh models">↻</button>
+          </div>
+        </label>
+        <label class="field hidden">
+          <span>Conversation</span>
+          <select id="conversation-select"></select>
+        </label>
+        <a href="/aichat/nexus-api.html" target="_blank" rel="noopener noreferrer" class="menu-item">NEXUS API docs</a>
+        <button id="install-app-btn" class="menu-item hidden">Install app</button>
+        <div id="install-app-hint" class="meta-line hidden">On iPhone: Share → Add to Home Screen.</div>
+        <button id="ui-settings-btn" class="menu-item">UI settings</button>
+        <button id="endpoint-settings-btn" class="menu-item admin-only">Model & endpoint settings</button>
+        <button id="provider-settings-btn" class="menu-item admin-only">API key settings</button>
+        <button id="user-management-btn" class="menu-item admin-only">User management</button>
+        <button id="logout-btn" class="menu-item">Log out</button>
+      </div>
+    </div>
+      <section class="library-hub">
+        <div class="mobile-library-nav" aria-label="Mobile section navigation">
+          <button id="library-back-to-recents" class="mini-btn secondary mobile-nav-pill" type="button" aria-label="Back to recents" title="Back to recents">← Recents</button>
+          <button id="library-current-view-btn" class="mini-btn secondary mobile-nav-pill is-active" type="button" aria-current="page">Library</button>
+        </div>
+        <div class="library-hub-header">
+          <div>
+            <h1>ＮＥＸＵＳ  ＮＥＴＷＯＲＫ</h1>
+            <p>Browse, rank, stalk tags, and pick your next bad idea.</p>
+            <div id="character-count" class="meta-line">0 characters</div>
+          </div>
+          <div class="section-actions">
+            <input id="acquire-count" class="mini-input acquire-count-input" type="number" min="1" max="50" step="1" value="6" title="How many characters to find" aria-label="Characters to find" />
+            <select id="acquire-strictness" class="mini-select" title="How strict character acquisition should be">
+              <option value="best">Best</option>
+              <option value="medium" selected>Medium</option>
+              <option value="low">Low</option>
+              <option value="none">No restrictions</option>
+            </select>
+            <button id="acquire-chub-btn" class="mini-btn secondary" title="Fetch and add more characters from Chub">Add more characters</button>
+            <button id="create-character-btn" class="mini-btn">Create</button>
+          </div>
+        </div>
+        <div id="acquire-chub-status" class="helper-text hidden"></div>
+        <details id="acquire-rejection-summary" class="rejection-summary hidden">
+          <summary>Rejected card reasons</summary>
+          <div id="acquire-rejection-summary-list" class="rejection-summary-list"></div>
+        </details>
+        <input id="character-search" type="search" placeholder="Search characters" />
+        <div class="filter-row">
+          <select id="source-filter">
+            <option value="">All sources</option>
+          </select>
+          <select id="tag-filter">
+            <option value="">All tags</option>
+          </select>
+        </div>
+        <div class="tab-row" id="library-tabs">
+          <button class="tab-chip active" data-library-tab="all">All</button>
+          <button class="tab-chip" data-library-tab="featured">Featured</button>
+          <button class="tab-chip" data-library-tab="new">New</button>
+          <button class="tab-chip" data-library-tab="chub">Chub</button>
+        </div>
+        <div class="library-stack">
+          <section class="library-strip-block">
+            <div class="sidebar-section-label">Top characters</div>
+            <div id="featured-list" class="featured-strip horizontal-strip"></div>
+          </section>
+          <section class="library-strip-block">
+            <div class="sidebar-section-label">Character library</div>
+            <div id="character-list" class="character-list horizontal-strip"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="chat-view" class="chat-view"></section>
+
+      <footer class="composer">
+        <button id="new-chat" class="secondary">New chat</button>
+        <label id="image-btn" class="secondary image-upload-button" title="Upload image">
+          <span id="image-btn-label">🖼 Upload</span>
+          <input id="image-input" type="file" accept="image/*" multiple hidden />
+        </label>
+        <textarea id="chat-input" rows="1" placeholder="Send a message..." name="nexus-message" enterkeyhint="send" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="true" data-lpignore="true" data-1p-ignore="true"></textarea>
+        <button id="send-btn">Send</button>
+      </footer>
+    </main>
+
+    
+
+    <button id="drawer-handle" class="drawer-handle" aria-label="Toggle character settings">❯</button>
+
+
+
+    <!-- DOM PATCH START -->
+    <button id="memory-drawer-handle" class="drawer-handle memory-drawer-handle" aria-label="Toggle memory panel">«</button>
+    <aside id="memory-panel" class="character-panel memory-panel">
+      <div class="character-panel-header memory-panel-mobile-header">
+        <div class="memory-panel-header-shell" style="display: flex; align-items: center; gap: 12px; width: 100%;">
+          <div style="position:relative;">
+            <img id="memory-char-avatar" class="avatar-bubble" src="" alt="Avatar" style="width:40px;height:40px;display:none;"/>
+            <div id="memory-char-health" style="position:absolute; bottom:-4px; right:-4px; width:14px; height:14px; border-radius:50%; background:var(--good); border:2px solid var(--panel); display:none;"></div>
+          </div>
+          <div class="memory-panel-title-block">
+            <div class="eyebrow" style="color:var(--accent);">Memory system</div>
+            <h2 id="memory-char-name">No Character Context</h2>
+          </div>
+        </div>
+        <button id="close-memory-panel" class="icon-button" aria-label="Back to chat">×</button>
+      </div>
+      <div id="memory-panel-content" class="character-panel-content memory-panel-content-wrap" style="padding-top: 10px;">
+         
+         <div class="memory-section">
+            <div class="sidebar-section-label">Relationship</div>
+            <div class="memory-box" id="mem-relationship">Building rapport...</div>
+         </div>
+
+         <div class="memory-section">
+            <div class="sidebar-section-label">Emotional State</div>
+            <div class="memory-box" id="mem-emotions">Neutral</div>
+         </div>
+
+         <div class="memory-section">
+            <div class="sidebar-section-label">Active Scenario</div>
+            <div class="memory-box" id="mem-scenario">No current scenario tracking.</div>
+         </div>
+
+         <div class="memory-section">
+            <div class="sidebar-section-label">Pinned Memory</div>
+            <div class="memory-box" id="mem-pinned">Nothing pinned.</div>
+         </div>
+
+         <div class="memory-section">
+            <div class="sidebar-section-label">Auto Memory</div>
+            <div class="memory-box" id="mem-auto">Waiting for interaction...</div>
+         </div>
+
+         <div class="memory-section">
+            <div class="sidebar-section-label">Canon/Rules</div>
+            <div class="memory-box" id="mem-canon">No hard rules defined.</div>
+         </div>
+
+         <div class="memory-section">
+            <div class="sidebar-section-label">Conflicts</div>
+            <div class="memory-box" id="mem-conflicts" style="border-left: 2px solid var(--bad); color: var(--bad);">No conflicts detected.</div>
+         </div>
+
+      </div>
+    </aside>
+    <!-- DOM PATCH END -->
+
+    <aside id="character-panel" class="character-panel">
+      <div class="character-panel-header">
+        <div>
+          <div class="eyebrow">Character workspace</div>
+          <h2 id="character-panel-title">Character settings</h2>
+        </div>
+        <button id="close-character-panel" class="icon-button">×</button>
+      </div>
+      <div id="character-panel-content" class="character-panel-content"></div>
+    </aside>
+  </div>
+
+  <dialog id="character-create-dialog">
+    <div class="settings-header">
+      <h2 id="character-create-title">Create character</h2>
+      <button id="close-character-create">Close</button>
+    </div>
+    <form id="character-create-form" class="settings-grid single-column-form">
+      <div class="section-head section-head-split">
+        <div class="meta-line">Simple mode. No nonsense.</div>
+        <div class="dialog-inline-actions">
+          <label class="mini-btn import-btn">
+            Import JSON/PNG
+            <input id="import-character-file" type="file" accept=".json,image/png" hidden />
+          </label>
+        </div>
+      </div>
+      <div class="avatar-preview-wrap">
+        <img id="create-character-avatar-preview" class="avatar-preview" alt="Avatar preview" />
+      </div>
+      <label class="field"><span>Name</span><input id="create-character-name" required placeholder="Seraphina" /></label>
+      <label class="field"><span>Description</span><textarea id="create-character-description" rows="3" placeholder="Who are they?"></textarea></label>
+      <label class="field"><span>Personality</span><textarea id="create-character-personality" rows="3" placeholder="Warm, sharp, smug, gentle..."></textarea></label>
+      <label class="field"><span>Scenario</span><textarea id="create-character-scenario" rows="3" placeholder="Where does the chat start?"></textarea></label>
+      <label class="field"><span>Greeting</span><textarea id="create-character-greeting" rows="3" placeholder="Their first message..."></textarea></label>
+      <label class="field"><span>Tags</span><input id="create-character-tags" placeholder="romance, fantasy, tsundere" /></label>
+      <label class="field"><span>Avatar image (required)</span><input id="create-character-avatar" type="file" accept="image/*" required /></label>
+      <div class="dialog-actions split-actions">
+        <button type="button" id="duplicate-character-btn" class="secondary hidden">Duplicate as new</button>
+        <button type="submit" id="create-character-submit">Create character</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog">
+    <div class="settings-header">
+      <h2 id="settings-title">UI settings</h2>
+      <button id="close-settings">Close</button>
+    </div>
+    <div class="settings-grid">
+      <label class="field"><span>Display name</span><input id="setting-display-name" placeholder="Jen" /></label>
+      <label class="field"><span>Accent color</span><input id="setting-accent" type="color" value="#8b5cf6" /></label>
+      <label class="field"><span>Auto-poll model list</span><select id="setting-poll"><option value="on">On</option><option value="off">Off</option></select></label>
+      <label class="field"><span>Animation level</span><select id="setting-animation"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+      <label class="field"><span>Reduce motion</span><select id="setting-reduce-motion"><option value="off">Off</option><option value="on">On</option></select></label>
+      <label class="field"><span>Blur strength</span><input id="setting-blur-strength" type="range" min="0" max="30" step="1" /></label>
+      <label class="field"><span>Transparency strength</span><input id="setting-transparency-strength" type="range" min="0.35" max="0.95" step="0.01" /></label>
+      <label class="field"><span>Background intensity</span><input id="setting-background-intensity" type="range" min="0.05" max="0.35" step="0.01" /></label>
+      <label class="field"><span>Layout density</span><select id="setting-density"><option value="compact">Compact</option><option value="cozy">Cozy</option></select></label>
+      <div id="advanced-only" class="advanced-only hidden"></div>
+    </div>
+  </dialog>
+
+  <dialog id="endpoint-settings-dialog">
+    <div class="settings-header">
+      <h2>Model & endpoint settings</h2>
+      <button id="close-endpoint-settings">Close</button>
+    </div>
+    <div class="settings-grid single-column-form">
+      <label class="field"><span>Saved local profiles</span><textarea id="endpoint-local-profiles" rows="4" placeholder="Studio|http://127.0.0.1:1234/v1
+Ollama|http://127.0.0.1:11434/v1"></textarea></label>
+      <label class="field"><span>Active local profile</span><select id="endpoint-active-local-profile"></select></label>
+      <label class="field"><span>Local model endpoint</span><input id="endpoint-local-base-url" placeholder="http://127.0.0.1:1234/v1" /></label>
+      <label class="field"><span>Provider label</span><input id="endpoint-provider-label" placeholder="llm" /></label>
+      <label class="field"><span>Default model</span><input id="endpoint-default-model" placeholder="mistralai/mistral-nemo-instruct-2407" /></label>
+      <label class="field"><span>Main (local) model</span><select id="endpoint-main-model"></select></label>
+      <label class="field"><span>Fallback 1 provider</span><select id="endpoint-fallback-provider-1"><option value="local">Local</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="xai">xAI</option></select></label>
+      <label class="field"><span>Fallback 1 model</span><select id="endpoint-fallback-model-1"></select></label>
+      <label class="field fallback-key-row" id="endpoint-fallback-key-row-1"><span>Fallback 1 API key</span><input id="endpoint-fallback-key-1" type="password" placeholder="Leave blank to keep current key" /></label>
+      <details class="advanced-override">
+        <summary>Fallback 1 advanced override</summary>
+        <label class="field"><span>Explicit provider</span><input id="endpoint-fallback-override-provider-1" placeholder="openrouter" /></label>
+        <label class="field"><span>Explicit base URL</span><input id="endpoint-fallback-override-base-1" placeholder="https://openrouter.ai/api/v1" /></label>
+        <label class="field"><span>Explicit model name</span><input id="endpoint-fallback-override-model-1" placeholder="openai/gpt-4.1-mini" /></label>
+        <label class="field"><span>Explicit API key</span><input id="endpoint-fallback-override-key-1" type="password" placeholder="Optional direct override key" /></label>
+      </details>
+      <label class="field"><span>Fallback 2 provider</span><select id="endpoint-fallback-provider-2"><option value="local">Local</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="xai">xAI</option></select></label>
+      <label class="field"><span>Fallback 2 model</span><select id="endpoint-fallback-model-2"></select></label>
+      <label class="field fallback-key-row" id="endpoint-fallback-key-row-2"><span>Fallback 2 API key</span><input id="endpoint-fallback-key-2" type="password" placeholder="Leave blank to keep current key" /></label>
+      <details class="advanced-override">
+        <summary>Fallback 2 advanced override</summary>
+        <label class="field"><span>Explicit provider</span><input id="endpoint-fallback-override-provider-2" placeholder="openrouter" /></label>
+        <label class="field"><span>Explicit base URL</span><input id="endpoint-fallback-override-base-2" placeholder="https://openrouter.ai/api/v1" /></label>
+        <label class="field"><span>Explicit model name</span><input id="endpoint-fallback-override-model-2" placeholder="openai/gpt-4.1-mini" /></label>
+        <label class="field"><span>Explicit API key</span><input id="endpoint-fallback-override-key-2" type="password" placeholder="Optional direct override key" /></label>
+      </details>
+      <label class="field"><span>Request timeout (ms)</span><input id="endpoint-request-timeout" type="number" min="1000" step="1000" /></label>
+      <div class="dialog-actions split-actions">
+        <button type="button" id="test-endpoint-btn" class="secondary">Test connection</button>
+        <button type="button" id="save-endpoint-settings">Save endpoint settings</button>
+      </div>
+      <div id="endpoint-test-result" class="meta-line"></div>
+    </div>
+  </dialog>
+
+  <dialog id="provider-settings-dialog">
+    <div class="settings-header">
+      <h2>API key settings</h2>
+      <button id="close-provider-settings">Close</button>
+    </div>
+    <div class="settings-grid single-column-form provider-settings-grid">
+      <label class="field"><span>OpenAI API key</span><input id="provider-openai-key" type="password" placeholder="sk-..." /></label>
+      <label class="field"><span>OpenRouter API key</span><input id="provider-openrouter-key" type="password" placeholder="or-..." /></label>
+      <label class="field"><span>Anthropic API key</span><input id="provider-anthropic-key" type="password" placeholder="sk-ant-..." /></label>
+      <label class="field"><span>Gemini API key</span><input id="provider-gemini-key" type="password" placeholder="AIza..." /></label>
+      <label class="field"><span>xAI API key</span><input id="provider-xai-key" type="password" placeholder="xai-..." /></label>
+      <div class="dialog-actions">
+        <button type="button" id="save-provider-settings">Save API key settings</button>
+      </div>
+      <div class="meta-line">Global, admin-only, stored server-side.</div>
+    </div>
+  </dialog>
+
+  <dialog id="user-management-dialog">
+    <div class="settings-header">
+      <h2>User management</h2>
+      <button id="close-user-management">Close</button>
+    </div>
+    <div class="settings-grid single-column-form">
+      <div id="user-list" class="user-list"></div>
+      <form id="user-create-form" class="settings-grid single-column-form user-create-form">
+        <div class="eyebrow">Create user</div>
+        <label class="field"><span>Username</span><input id="new-user-username" required placeholder="newuser" /></label>
+        <label class="field"><span>Display name</span><input id="new-user-display-name" placeholder="New User" /></label>
+        <label class="field"><span>Password</span><input id="new-user-password" type="password" required placeholder="at least 4 characters" /></label>
+        <label class="field"><span>Role</span><select id="new-user-role"><option value="user">User</option><option value="admin">Admin</option></select></label>
+        <div class="dialog-actions split-actions">
+          <button type="submit" id="create-user-submit">Create user</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="rewind-confirm-dialog">
+    <div class="settings-header">
+      <h2>Rewind conversation</h2>
+      <button id="close-rewind-confirm">Close</button>
+    </div>
+    <div class="settings-grid single-column-form">
+      <div class="meta-line">This will erase every message after the one you selected.</div>
+      <div id="rewind-confirm-target" class="rewind-confirm-target"></div>
+      <div class="dialog-actions split-actions">
+        <button type="button" id="cancel-rewind-confirm" class="secondary">Cancel</button>
+        <button type="button" id="confirm-rewind-confirm">Rewind</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="app.js?v=user-placeholder-v36"></script>
+</body>
+</html>

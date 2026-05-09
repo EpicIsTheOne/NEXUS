@@ -1,0 +1,57 @@
+[
+  {
+    "startedAt": "2026-03-21T21:12:51.891Z",
+    "source": "https://raw.githubusercontent.com/TheLonelyDevil9/discord-pals/main/characters/firefly.md",
+    "fileType": "md",
+    "success": true,
+    "name": "Firefly"
+  },
+  {
+    "startedAt": "2026-03-21T21:12:51.882Z",
+    "source": "https://raw.githubusercontent.com/Krakoukas73/silly-tavern-ai-characters/main/Characters/Gollum.json",
+    "fileType": "json",
+    "success": false,
+    "name": "Gollum",
+    "error": "Validation failed: missing personality, missing scenario, missing example dialogue, personality too short, scenario too short"
+  },
+  {
+    "startedAt": "2026-03-21T21:12:51.874Z",
+    "source": "https://raw.githubusercontent.com/Krakoukas73/silly-tavern-ai-characters/main/Characters/Capitaine%20Haddock.json",
+    "fileType": "json",
+    "success": false,
+    "name": "Capitaine Haddock",
+    "error": "Validation failed: missing personality, missing scenario, missing example dialogue, personality too short, scenario too short"
+  },
+  {
+    "startedAt": "2026-03-21T21:12:51.850Z",
+    "source": "https://raw.githubusercontent.com/Krakoukas73/silly-tavern-ai-characters/main/Characters/Bender.json",
+    "fileType": "json",
+    "success": false,
+    "name": "Bender",
+    "error": "Validation failed: missing personality, missing scenario, missing example dialogue, personality too short, scenario too short"
+  },
+  {
+    "startedAt": "2026-03-21T21:08:56.411Z",
+    "source": "https://raw.githubusercontent.com/Krakoukas73/silly-tavern-ai-characters/main/Characters/Gollum.json",
+    "fileType": "json",
+    "success": false,
+    "name": "Gollum",
+    "error": "Validation failed: missing personality, missing scenario, missing example dialogue, personality too short, scenario too short"
+  },
+  {
+    "startedAt": "2026-03-21T21:08:56.323Z",
+    "source": "https://raw.githubusercontent.com/Krakoukas73/silly-tavern-ai-characters/main/Characters/Capitaine%20Haddock.json",
+    "fileType": "json",
+    "success": false,
+    "name": "Capitaine Haddock",
+    "error": "Validation failed: missing personality, missing scenario, missing example dialogue, personality too short, scenario too short"
+  },
+  {
+    "startedAt": "2026-03-21T21:08:56.247Z",
+    "source": "https://raw.githubusercontent.com/Krakoukas73/silly-tavern-ai-characters/main/Characters/Bender.json",
+    "fileType": "json",
+    "success": false,
+    "name": "Bender",
+    "error": "Validation failed: missing personality, missing scenario, missing example dialogue, personality too short, scenario too short"
+  }
+]

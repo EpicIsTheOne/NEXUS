@@ -1,0 +1,31 @@
+# Secrets / local config
+.env
+*.env
+!.env.example
+
+# Dependencies
+node_modules/
+.pydeps/
+.venv/
+
+# Runtime/private app state
+data/
+tmp/
+.cache/
+backups/
+*.log
+
+# Generated media / large imported libraries
+characters/chub/
+characters/png/
+characters/avatars/*.webp
+characters/avatars/*.png
+characters/avatars/*.jpg
+characters/avatars/*.jpeg
+characters/avatars/*.gif
+fish-audio-*.tgz
+
+# Local/editor noise
+.DS_Store
+.vscode/
+.idea/
