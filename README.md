@@ -8,6 +8,17 @@ The live deployment for Epic runs at:
 - API docs: `https://techexplore.us/aichat/nexus-api.html`
 - NEXUS API base: `https://techexplore.us/aichat/api/nexus`
 
+
+## Documentation
+
+- [Setup guide](docs/SETUP.md)
+- [Feature guide](docs/FEATURES.md)
+- [API reference](docs/API.md)
+- [Deployment notes](docs/DEPLOYMENT.md)
+- [OpenClaw bridge notes](docs/OPENCLAW_BRIDGE.md)
+
+![NEXUS login screen](docs/assets/screenshots/nexus-login.png)
+
 ## What NEXUS can do
 
 ### Chat and character roleplay
