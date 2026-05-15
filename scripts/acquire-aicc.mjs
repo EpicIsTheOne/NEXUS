@@ -1,6 +1,6 @@
 import { chromium } from '../automation/chub/node_modules/playwright/index.mjs';
 
-const BASE_URL = (process.env.AICHAT_BASE_URL || 'https://techexplore.us/aichat').replace(/\/$/, '');
+const BASE_URL = (process.env.AICHAT_BASE_URL || 'https://your-domain.example/aichat').replace(/\/$/, '');
 const USERNAME = process.env.AICHAT_USERNAME || 'Epic';
 const PASSWORD = process.env.AICHAT_PASSWORD || '';
 const MAX_IMPORTS = Number(process.env.AICC_MAX_IMPORTS || 20);

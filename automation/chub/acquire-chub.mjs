@@ -10,7 +10,7 @@ const AVATAR_DIR = path.join(CHARACTER_ROOT, 'avatars');
 const LOG_PATH = path.join(CHARACTER_ROOT, 'chub-import-log.json');
 const DEFAULT_AVATAR_PATH = path.join(AVATAR_DIR, 'default-placeholder.svg');
 
-const BASE_URL = (process.env.AICHAT_BASE_URL || 'https://techexplore.us/aichat').replace(/\/$/, '');
+const BASE_URL = (process.env.AICHAT_BASE_URL || 'https://your-domain.example/aichat').replace(/\/$/, '');
 const USERNAME = process.env.AICHAT_USERNAME || 'Epic';
 const PASSWORD = process.env.AICHAT_PASSWORD || '';
 const DEFAULT_SEARCH_QUERIES = [

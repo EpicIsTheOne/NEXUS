@@ -55,7 +55,7 @@ const IMAGE_GENERATION_MODELS = [
 ];
 const ALLOWED_IMAGE_GENERATION_MODELS = new Set(IMAGE_GENERATION_MODELS.map((model) => model.id));
 const REPLICATE_ASSET_DIR = path.join(APP_DATA_DIR, 'replicate');
-const PUBLIC_APP_ORIGIN = (process.env.PUBLIC_APP_ORIGIN || 'https://techexplore.us').replace(/\/$/, '');
+const PUBLIC_APP_ORIGIN = (process.env.PUBLIC_APP_ORIGIN || 'https://your-domain.example').replace(/\/$/, '');
 
 const SETTINGS_PATH = path.join(ST_DATA_DIR, 'settings.json');
 const CHARACTERS_DIR = path.join(ST_DATA_DIR, 'characters');
@@ -704,7 +704,7 @@ async function fetchBackend(pathname, options = {}, timeoutMs = 6000, provider =
       headers: {
         'Content-Type': 'application/json',
         ...(runtime.apiKey ? { Authorization: `Bearer ${runtime.apiKey}` } : {}),
-        ...(provider === 'openrouter' && runtime.apiKey ? { 'HTTP-Referer': 'https://techexplore.us/aichat', 'X-Title': 'AIChat' } : {}),
+        ...(provider === 'openrouter' && runtime.apiKey ? { 'HTTP-Referer': 'https://your-domain.example/aichat', 'X-Title': 'AIChat' } : {}),
         ...(options.headers || {}),
       },
     });
@@ -1531,7 +1531,7 @@ async function createOpenRouterImageEdit({ prompt, imageBuffer, imageMimeType, a
     headers: {
       'Authorization': `Bearer ${runtime.apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://techexplore.us/aichat',
+      'HTTP-Referer': 'https://your-domain.example/aichat',
       'X-Title': 'AIChat',
     },
     body: JSON.stringify({
@@ -1952,7 +1952,7 @@ function startAcquisitionScript({ requestedBy = 'system', batchSize = 6, scoreTh
     cwd: process.cwd(),
     env: {
       ...process.env,
-      AICHAT_BASE_URL: `https://techexplore.us${BASE_PATH}`,
+      AICHAT_BASE_URL: `https://your-domain.example${BASE_PATH}`,
       AICHAT_USERNAME: requestedBy,
       AICHAT_PASSWORD: password,
       CHUB_MAX_IMPORTS: String(batchSize),

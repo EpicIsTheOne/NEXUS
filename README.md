@@ -4,9 +4,9 @@ NEXUS is a self-hosted character-chat web app with a cyberpunk mobile-first UI, 
 
 The live deployment for Epic runs at:
 
-- App: `https://techexplore.us/aichat/`
-- API docs: `https://techexplore.us/aichat/nexus-api.html`
-- NEXUS API base: `https://techexplore.us/aichat/api/nexus`
+- App: `https://your-domain.example/aichat/`
+- API docs: `https://your-domain.example/aichat/nexus-api.html`
+- NEXUS API base: `https://your-domain.example/aichat/api/nexus`
 
 
 ## Documentation

@@ -127,7 +127,7 @@
         <a class="mini-btn secondary" href="/aichat/api/nexus/characters" target="_blank" rel="noopener noreferrer">Open characters JSON</a>
         <a class="mini-btn secondary" href="/aichat/api/nexus/health" target="_blank" rel="noopener noreferrer">Open health JSON</a>
       </div>
-      <p class="docs-note">Base path: <span class="inline-code">https://techexplore.us/aichat/api/nexus</span><br />Auth for v1 uses the same login session as the site.</p>
+      <p class="docs-note">Base path: <span class="inline-code">https://your-domain.example/aichat/api/nexus</span><br />Auth for v1 uses the same login session as the site.</p>
     </section>
 
     <section class="docs-grid">
@@ -157,7 +157,7 @@
       <h2>Python example: login and get character IDs</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://techexplore.us/aichat"
+BASE = "https://your-domain.example/aichat"
 s = requests.Session()
 
 # 1) Log in using the same account you use on the site
@@ -185,7 +185,7 @@ print("Using characterId:", character_id)</pre>
       <h2>Python example: create a history and get <code>historyId</code></h2>
       <pre class="docs-code">import requests
 
-BASE = "https://techexplore.us/aichat"
+BASE = "https://your-domain.example/aichat"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -211,7 +211,7 @@ print(history)</pre>
       <h2>Python example: normal chat with an existing history</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://techexplore.us/aichat"
+BASE = "https://your-domain.example/aichat"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -237,7 +237,7 @@ print(chat)</pre>
       <h2>Python example: one-off chat without a saved history</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://techexplore.us/aichat"
+BASE = "https://your-domain.example/aichat"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -259,7 +259,7 @@ print(chat_res.json()["response"])</pre>
       <h2>Python example: create a history automatically from chat</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://techexplore.us/aichat"
+BASE = "https://your-domain.example/aichat"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -286,7 +286,7 @@ print("response:", data["response"])</pre>
       <h2>Python example: use your own message history</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://techexplore.us/aichat"
+BASE = "https://your-domain.example/aichat"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -314,7 +314,7 @@ print(chat_res.json()["response"])</pre>
       <pre class="docs-code">import json
 import requests
 
-BASE = "https://techexplore.us/aichat"
+BASE = "https://your-domain.example/aichat"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()

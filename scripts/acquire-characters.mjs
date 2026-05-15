@@ -7,7 +7,7 @@ const JSON_DIR = path.join(OUT_DIR, 'json');
 const PNG_DIR = path.join(OUT_DIR, 'png');
 const LOG_PATH = path.join(OUT_DIR, 'import-log.json');
 
-const BASE_URL = (process.env.AICHAT_BASE_URL || 'https://techexplore.us/aichat').replace(/\/$/, '');
+const BASE_URL = (process.env.AICHAT_BASE_URL || 'https://your-domain.example/aichat').replace(/\/$/, '');
 const USERNAME = process.env.AICHAT_USERNAME || 'Epic';
 const PASSWORD = process.env.AICHAT_PASSWORD || '';
 
