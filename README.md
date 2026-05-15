@@ -179,9 +179,13 @@ Do not commit real `.env` files, API keys, bridge secrets, session cookies, gene
 ## Local development
 
 ```bash
-npm install
-PORT=3000 BASE_PATH=/aichat npm start
+npm ci
+cp .env.example .env
+npm run setup:check
+npm start
 ```
+
+(`npm install` is also supported; `npm ci` is recommended for clean-room verification.)
 
 Then open:
 
@@ -189,13 +193,20 @@ Then open:
 http://localhost:3000/aichat/
 ```
 
+The setup doctor checks Node, writable data paths, backend reachability, optional Fish Audio, optional image providers, and optional OpenClaw bridge wiring before you waste time in the browser.
+
 ## Docker
 
+For local Docker without Traefik/proxy assumptions:
+
 ```bash
-docker compose up -d --build
+cp .env.example .env
+# edit .env first
+# optional: set HOST_PORT=4320 if 3000 is already taken
+docker compose -f docker-compose.local.yml up -d --build
 ```
 
-The included compose file is deployment-oriented. Review secrets, volumes, Traefik labels, and network names before using it on a different host.
+The default `docker-compose.yml` is deployment-oriented. Review secrets, volumes, Traefik labels, and network names before using it on a different host.
 
 ## Safety / privacy notes
 
