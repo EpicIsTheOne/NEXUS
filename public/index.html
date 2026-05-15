@@ -111,6 +111,7 @@
         <button id="ui-settings-btn" class="menu-item">UI settings</button>
         <button id="endpoint-settings-btn" class="menu-item admin-only">Model & endpoint settings</button>
         <button id="provider-settings-btn" class="menu-item admin-only">API key settings</button>
+        <button id="setup-status-btn" class="menu-item admin-only">Setup status</button>
         <button id="user-management-btn" class="menu-item admin-only">User management</button>
         <button id="logout-btn" class="menu-item">Log out</button>
       </div>
@@ -431,6 +432,22 @@ Ollama|http://127.0.0.1:11434/v1"></textarea></label>
         <button type="button" id="save-provider-settings">Save API key settings</button>
       </div>
       <div class="meta-line">Global, admin-only, stored server-side.</div>
+    </div>
+  </dialog>
+
+  <dialog id="setup-status-dialog">
+    <div class="settings-header">
+      <h2>Setup status</h2>
+      <button id="close-setup-status">Close</button>
+    </div>
+    <div class="settings-grid single-column-form">
+      <div id="setup-status-summary" class="setup-status-summary">Checking setup…</div>
+      <div class="dialog-actions split-actions">
+        <button type="button" id="refresh-setup-status" class="secondary">Run setup check</button>
+        <button type="button" id="open-endpoint-from-setup">Endpoint settings</button>
+      </div>
+      <div id="setup-status-list" class="setup-status-list"></div>
+      <div class="meta-line">Voice and images are optional. OpenClaw bridge is <strong>Alpha</strong> (experimental / not fully reliable yet). Chat backend is the big one. Shocking, I know.</div>
     </div>
   </dialog>
 

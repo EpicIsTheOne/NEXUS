@@ -1,4 +1,6 @@
-# OpenClaw Bridge
+# OpenClaw Bridge (Alpha)
+
+> ⚠️ **Alpha feature:** the OpenClaw bridge is still experimental and may be unreliable in some flows.
 
 NEXUS can optionally send work to an OpenClaw bridge service. This is useful when character/chat actions should be handled by OpenClaw rather than only the configured chat backend.
 

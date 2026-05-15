@@ -119,9 +119,10 @@ NEXUS API auth currently uses the same web login session cookie as the app. API 
 - Header controls for memory, TTS status, profile/settings, and recents.
 - Touch-friendly character library and chat composer.
 
-### OpenClaw bridge integration
+### OpenClaw bridge integration (Alpha)
 
 - Optional OpenClaw bridge integration through `OPENCLAW_BRIDGE_URL` and `OPENCLAW_BRIDGE_SECRET`.
+- **Alpha / experimental:** this feature is not fully reliable yet.
 - Can send chat/session work to an OpenClaw bridge when configured.
 - Uses mounted OpenClaw auth profiles in the current Docker deployment.
 
