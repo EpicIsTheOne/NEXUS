@@ -2655,8 +2655,17 @@ function normalizeTtsMoans(value = '') {
   return text;
 }
 
+function stripEmojiForTts(value = '') {
+  return String(value || '')
+    .replace(/[0-9#*]\uFE0F?\u20E3/gu, ' ')
+    .replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, ' ')
+    .replace(/[\u{1F3FB}-\u{1F3FF}]/gu, ' ')
+    .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu, ' ')
+    .replace(/[\uFE0F\u200D]/g, ' ');
+}
+
 function normalizeTtsText(value = '') {
-  const text = normalizeTtsMoans(String(value || ''))
+  const text = stripEmojiForTts(normalizeTtsMoans(String(value || '')))
     .replace(/\*/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
