@@ -2970,8 +2970,9 @@ function stripRpNarrationForTts(rawText = '', options = {}) {
   const isSpeakableAsteriskDialogue = (content = '') => {
     const value = String(content || '').trim();
     if (!value) return false;
-    if (/^[A-Za-z0-9][A-Za-z0-9'’_-]*$/.test(value)) return true;
     if (isLikelyActionSpan(value)) return false;
+    if (/^(?:sniff(?:s|ing|ed)?|sniffle(?:s|d|ing)?|sob(?:s|bing|bed)?|whimper(?:s|ing|ed)?|gasp(?:s|ing|ed)?|pant(?:s|ing|ed)?|moan(?:s|ing|ed)?|laugh(?:s|ing|ed)?(?:-?crying)?|cry(?:s|ing|ied)?|murmur(?:s|ed|ing)?|mumble(?:s|d|ing)?|whisper(?:s|ed|ing)?|chuckle(?:s|d|ing)?|sigh(?:s|ed|ing)?|groan(?:s|ed|ing)?|shiver(?:s|ed|ing)?|tremble(?:s|d|ing)?|brace(?:s|d|ing)?|cling(?:s|ing)?|shak(?:e|es|ing)|quiet|quieter|soft|softly|fragile|vulnerable|wary|unsteady|bracing|clinging|crumbles?)$/i.test(value)) return false;
+    if (/^[A-Za-z0-9][A-Za-z0-9'’_-]*$/.test(value)) return false;
     if (/[.!?…—-]$/.test(value) && /\b(i|i'm|i’ve|i'd|i’ll|me|my|mine|you|you're|you've|you'd|we|we're|he|she|they|it|your|yours|want|need|love|hate|feel|think|know|am|are|is|was|were|do|don't|can't|won't|please|yes|no)\b/i.test(value)) return true;
     return false;
   };
@@ -2981,7 +2982,8 @@ function stripRpNarrationForTts(rawText = '', options = {}) {
     if (includeAsteriskNarration) return content;
     if (isLikelyActionSpan(content)) return ' ';
     if (isSpeakableAsteriskDialogue(content)) return content;
-    if (countWords(content) <= 4 && !/[,.].{0,}$/i.test(content)) return content;
+    if (/^(?:sniff(?:s|ing|ed)?|sniffle(?:s|d|ing)?|sob(?:s|bing|bed)?|whimper(?:s|ing|ed)?|gasp(?:s|ing|ed)?|pant(?:s|ing|ed)?|moan(?:s|ing|ed)?|laugh(?:s|ing|ed)?(?:-?crying)?|cry(?:s|ing|ied)?|murmur(?:s|ed|ing)?|mumble(?:s|d|ing)?|whisper(?:s|ed|ing)?|chuckle(?:s|d|ing)?|sigh(?:s|ed|ing)?|groan(?:s|ed|ing)?|shiver(?:s|ed|ing)?|tremble(?:s|d|ing)?|brace(?:s|d|ing)?|cling(?:s|ing)?|shak(?:e|es|ing)|quiet|quieter|soft|softly|fragile|vulnerable|wary|unsteady|bracing|clinging|crumbles?)$/i.test(content)) return ' ';
+    if (countWords(content) <= 4 && !/[,.].{0,}$/i.test(content) && /\b(i|i'm|i’ve|i'd|i’ll|me|my|mine|you|you're|you've|you'd|we|we're|he|she|they|it|your|yours|want|need|love|hate|feel|think|know|am|are|is|was|were|do|don't|can't|won't|please|yes|no|okay|this|that|here|there|what|why|how)\b/i.test(content)) return content;
     return ' ';
   };
   const stripInlineMarkup = (value = '') => String(value || '')
