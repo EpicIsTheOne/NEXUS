@@ -763,11 +763,43 @@ async function readChatCompletionStream(response, onDelta) {
   return content;
 }
 
+const OPENROUTER_FEATURED_MODELS = [
+  { id: 'z-ai/glm-5', label: 'z-ai/glm-5' },
+  { id: 'openai/gpt-5.5', label: 'openai/gpt-5.5' },
+  { id: 'anthracite-org/magnum-v4-72b', label: 'anthracite-org/magnum-v4-72b' },
+  { id: 'sao10k/l3.1-euryale-70b', label: 'sao10k/l3.1-euryale-70b' },
+  { id: 'sophosympatheia/rogue-rose-103b-v0.2', label: 'sophosympatheia/rogue-rose-103b-v0.2' },
+];
+const OPENROUTER_MODEL_PREFIXES = [
+  'z-ai/',
+  'anthracite-org/',
+  'sao10k/',
+  'sophosympatheia/',
+  'openai/',
+  'google/',
+  'anthropic/',
+  'meta-llama/',
+  'mistralai/',
+  'qwen/',
+  'deepseek/',
+  'cohere/',
+  'x-ai/',
+  'xai/',
+];
+
+function inferPrimaryProviderForModel(model = '') {
+  const normalized = String(model || '').trim().toLowerCase();
+  if (!normalized) return 'local';
+  return OPENROUTER_MODEL_PREFIXES.some((prefix) => normalized.startsWith(prefix)) ? 'openrouter' : 'local';
+}
+
 async function fetchProviderModels(provider, appConfig) {
   const ensureExtraModels = (models = []) => {
     const list = Array.isArray(models) ? [...models] : [];
-    if (provider === 'openrouter' && !list.find((item) => item.id === 'openrouter/openrouter/openai/gpt-5.5')) {
-      list.unshift({ id: 'openrouter/openrouter/openai/gpt-5.5', label: 'openrouter/openrouter/openai/gpt-5.5' });
+    if (provider === 'openrouter') {
+      for (const model of OPENROUTER_FEATURED_MODELS.slice().reverse()) {
+        if (!list.find((item) => item.id === model.id)) list.unshift(model);
+      }
     }
     return list;
   };
@@ -3392,7 +3424,7 @@ async function callFishTTS(payload) {
   };
 }
 
-async function streamFishTtsToResponse({ text, settings, res }) {
+async function streamFishTtsToResponse({ text, settings, res, taggedText = '', tags = [], spokenText = '' }) {
   if (!fishAudioClient) {
     const error = new Error('Fish Audio is not configured on the server.');
     error.statusCode = 503;
@@ -3425,7 +3457,7 @@ async function streamFishTtsToResponse({ text, settings, res }) {
       res.status(200);
       res.setHeader('Content-Type', 'audio/mpeg');
       res.setHeader('Cache-Control', 'no-store');
-      res.setHeader('X-TTS-Mode', 'stream');
+      setTaggedAudioHeaders(res, { taggedText, tags, spokenText, mode: 'stream' });
     });
 
     connection.on(RealtimeEvents.AUDIO_CHUNK, (chunk) => {
@@ -3551,10 +3583,11 @@ async function generateCharacterReply({ userStore, authUser = null, characterId,
   const existingConversation = conversationId ? (userStore.conversations[conversationKey] || []).find((item) => item.id === conversationId) : null;
   const memoryBundle = existingConversation ? buildConversationMemoryBundle({ userStore, character, conversation: { ...existingConversation, messages } }) : null;
   const preferredModel = model || characterSettings.modelOverride || appConfig.endpoints.mainModel || appConfig.endpoints.defaultModel || DEFAULT_MODEL;
+  const primaryProvider = inferPrimaryProviderForModel(preferredModel);
   const fallbackOverride1 = appConfig.endpoints.fallbackOverride1 || {};
   const fallbackOverride2 = appConfig.endpoints.fallbackOverride2 || {};
   const candidatePlans = [
-    { provider: 'local', model: preferredModel },
+    { provider: primaryProvider, model: preferredModel },
     fallbackOverride1.enabled
       ? { provider: fallbackOverride1.provider || 'openrouter', model: fallbackOverride1.model, override: fallbackOverride1 }
       : { provider: appConfig.endpoints.fallbackProvider1 || 'local', model: appConfig.endpoints.fallbackModel1 },
@@ -3944,16 +3977,19 @@ app.get(`${BASE_PATH}/api/bootstrap`, requireAuth, async (req, res) => {
 
 app.get(`${BASE_PATH}/api/models`, requireAuth, async (_req, res) => {
   const config = await loadAppConfig();
+  const mainModel = config.endpoints.mainModel || config.endpoints.defaultModel || DEFAULT_MODEL;
   const defaultModel = config.endpoints.defaultModel || DEFAULT_MODEL;
-  const extraModels = [{ id: 'openrouter/openrouter/openai/gpt-5.5', label: 'openrouter/openrouter/openai/gpt-5.5' }];
+  const primaryProvider = inferPrimaryProviderForModel(mainModel);
+  const extraModels = OPENROUTER_FEATURED_MODELS;
   try {
-    const models = await fetchProviderModels('local', config);
+    const models = await fetchProviderModels(primaryProvider, config);
     const deduped = Array.from(new Map([...extraModels, ...models].map((m) => [m.id, m])).values());
+    if (!deduped.find((m) => m.id === mainModel)) deduped.unshift({ id: mainModel, label: mainModel });
     if (!deduped.find((m) => m.id === defaultModel)) deduped.unshift({ id: defaultModel, label: defaultModel });
-    res.json({ models: deduped, backendReachable: true });
+    res.json({ models: deduped, backendReachable: true, provider: primaryProvider });
   } catch (error) {
-    const fallback = Array.from(new Map([{ id: defaultModel, label: defaultModel }, ...extraModels].map((m) => [m.id, m])).values());
-    res.json({ models: fallback, backendReachable: false, error: String(error?.message || error) });
+    const fallback = Array.from(new Map([{ id: mainModel, label: mainModel }, { id: defaultModel, label: defaultModel }, ...extraModels].map((m) => [m.id, m])).values());
+    res.json({ models: fallback, backendReachable: false, provider: primaryProvider, error: String(error?.message || error) });
   }
 });
 
@@ -4690,10 +4726,11 @@ app.post(`${BASE_PATH}/api/characters/:characterId/generate-image-prompt`, requi
       },
     ];
 
+    const primaryProvider = inferPrimaryProviderForModel(preferredModel);
     const fallbackOverride1 = appConfig.endpoints.fallbackOverride1 || {};
     const fallbackOverride2 = appConfig.endpoints.fallbackOverride2 || {};
     const candidatePlans = [
-      { provider: 'local', model: preferredModel },
+      { provider: primaryProvider, model: preferredModel },
       fallbackOverride1.enabled
         ? { provider: fallbackOverride1.provider || 'openrouter', model: fallbackOverride1.model, override: fallbackOverride1 }
         : { provider: appConfig.endpoints.fallbackProvider1 || 'local', model: appConfig.endpoints.fallbackModel1 },
@@ -5436,7 +5473,14 @@ app.post(`${BASE_PATH}/api/tts`, requireAuth, async (req, res) => {
 
     if (stream === true) {
       try {
-        const streamedBuffer = await streamFishTtsToResponse({ text: ttsText, settings, res });
+        const streamedBuffer = await streamFishTtsToResponse({
+          text: ttsText,
+          settings,
+          res,
+          taggedText: ttsText,
+          tags: parseTtsEmotionTags(ttsText),
+          spokenText: cleanTtsSpeechText(stripRpNarrationForTts(rawText, { includeAsteriskNarration: settings.ttsReadNarration === true })),
+        });
         if (streamedBuffer?.length) {
           await fsp.writeFile(cachePath, streamedBuffer).catch(() => {});
           pruneAudioCache().catch(() => {});
@@ -5587,10 +5631,11 @@ app.post(`${BASE_PATH}/api/chat`, requireAuth, async (req, res) => {
     const appConfig = await loadAppConfig();
     const characterSettings = getCharacterSettings(userStore, characterId);
     const preferredModel = model || characterSettings.modelOverride || appConfig.endpoints.mainModel || appConfig.endpoints.defaultModel || DEFAULT_MODEL;
+    const primaryProvider = inferPrimaryProviderForModel(preferredModel);
     const fallbackOverride1 = appConfig.endpoints.fallbackOverride1 || {};
     const fallbackOverride2 = appConfig.endpoints.fallbackOverride2 || {};
     const candidatePlans = [
-      { provider: 'local', model: preferredModel },
+      { provider: primaryProvider, model: preferredModel },
       fallbackOverride1.enabled
         ? { provider: fallbackOverride1.provider || 'openrouter', model: fallbackOverride1.model, override: fallbackOverride1 }
         : { provider: appConfig.endpoints.fallbackProvider1 || 'local', model: appConfig.endpoints.fallbackModel1 },

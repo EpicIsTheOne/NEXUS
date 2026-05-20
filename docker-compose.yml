@@ -28,7 +28,7 @@ services:
       traefik.enable: "true"
       traefik.docker.network: "proxy"
       traefik.http.routers.aichat.entrypoints: "websecure"
-      traefik.http.routers.aichat.rule: "Host(`techexplore.us`) && PathPrefix(`/aichat`)"
+      traefik.http.routers.aichat.rule: "Host(`${PUBLIC_HOST:-your-domain.example}`) && PathPrefix(`/aichat`)"
       traefik.http.routers.aichat.tls: "true"
       traefik.http.routers.aichat.tls.certresolver: "myresolver"
       traefik.http.services.aichat.loadbalancer.server.port: "3000"

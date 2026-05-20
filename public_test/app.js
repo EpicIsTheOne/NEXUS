@@ -1826,7 +1826,11 @@ function stopCurrentTts({ reset = true } = {}) {
 }
 
 function normalizeTtsRequestText(text) {
-  return String(text || '').replace(/\s+/g, ' ').trim();
+  return String(text || '')
+    .replace(/\*([^*\n][\s\S]*?[^*\n])\*/g, ' ')
+    .replace(/_([^_\n][\s\S]*?[^_\n])_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 async function fetchTtsAudio({ characterId, text, stream = false }) {

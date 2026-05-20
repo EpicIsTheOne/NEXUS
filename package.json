@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "setup:check": "node scripts/setup-doctor.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

@@ -27,7 +27,7 @@ The committed compose file mirrors the live-style deployment. It includes:
 - `BASE_PATH=/aichat`
 - a writable `/app/data` mount
 - optional OpenClaw auth profile mount
-- Traefik labels for `techexplore.us/aichat`
+- Traefik labels for `your-domain.example/aichat`
 - an external `proxy` network
 
 Adjust those for other hosts.

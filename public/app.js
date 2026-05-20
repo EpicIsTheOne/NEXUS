@@ -2554,34 +2554,34 @@ async function playMessageTts(message, key) {
 
   let objectUrl = state.tts.objectUrls[key];
   const playbackMode = getCharacterTtsPlaybackMode();
-  // Quality guard: do not client-split RP messages for first playback.
-  // Splitting before the server tagger runs can make Fish read *asterisk narration*
-  // and generate lower-quality per-chunk audio, while later full-cache replays sound clean.
-  // Always request one full cleaned message so first play and replay match.
-  const fastStartChunks = [];
-  const shouldChunk = false;
-
-  if (shouldChunk) {
-    state.tts.loadingKeys[key] = true;
-    rerenderChatIfMounted();
-    primeFullMessageTts({ characterId: state.selectedCharacterId, text, key }).catch(() => {});
-    try {
-      await playChunkedMessageTts({ characterId: state.selectedCharacterId, text, key, chunks: fastStartChunks });
-    } finally {
-      delete state.tts.loadingKeys[key];
-      rerenderChatIfMounted();
-    }
-    return;
-  }
+  let ephemeralObjectUrl = '';
 
   if (!objectUrl) {
     state.tts.loadingKeys[key] = true;
     rerenderChatIfMounted();
     try {
-      const { blob, emotionTag } = await fetchTtsAudioBlob({ characterId: state.selectedCharacterId, text, includeAsteriskNarration });
-      if (emotionTag) state.tts.debugTags[key] = emotionTag;
-      objectUrl = URL.createObjectURL(blob);
-      state.tts.objectUrls[key] = objectUrl;
+      if (playbackMode === 'stream') {
+        primeFullMessageTts({ characterId: state.selectedCharacterId, text, key }).catch(() => {});
+        const response = await fetchTtsAudio({ characterId: state.selectedCharacterId, text, stream: true, includeAsteriskNarration });
+        const emotionTag = String(response.headers.get('X-TTS-Emotion-Tag') || '').trim();
+        if (emotionTag) state.tts.debugTags[key] = emotionTag;
+        objectUrl = await streamAudioResponseToObjectUrl(response, key);
+        ephemeralObjectUrl = objectUrl;
+      } else {
+        const { blob, emotionTag } = await fetchTtsAudioBlob({ characterId: state.selectedCharacterId, text, includeAsteriskNarration });
+        if (emotionTag) state.tts.debugTags[key] = emotionTag;
+        objectUrl = URL.createObjectURL(blob);
+        state.tts.objectUrls[key] = objectUrl;
+      }
+    } catch (error) {
+      if (playbackMode === 'stream') {
+        const { blob, emotionTag } = await fetchTtsAudioBlob({ characterId: state.selectedCharacterId, text, includeAsteriskNarration });
+        if (emotionTag) state.tts.debugTags[key] = emotionTag;
+        objectUrl = URL.createObjectURL(blob);
+        state.tts.objectUrls[key] = objectUrl;
+      } else {
+        throw error;
+      }
     } finally {
       delete state.tts.loadingKeys[key];
       rerenderChatIfMounted();
@@ -2594,6 +2594,10 @@ async function playMessageTts(message, key) {
     state.tts.currentKey = key;
     state.tts.currentPaused = false;
     audio.addEventListener('ended', () => {
+      if (ephemeralObjectUrl) {
+        try { URL.revokeObjectURL(ephemeralObjectUrl); } catch {}
+        ephemeralObjectUrl = '';
+      }
       if (state.tts.currentAudio === audio) {
         state.tts.currentAudio = null;
         state.tts.currentKey = null;
@@ -2602,6 +2606,10 @@ async function playMessageTts(message, key) {
       }
     });
     audio.addEventListener('error', () => {
+      if (ephemeralObjectUrl) {
+        try { URL.revokeObjectURL(ephemeralObjectUrl); } catch {}
+        ephemeralObjectUrl = '';
+      }
       if (state.tts.currentAudio === audio) {
         state.tts.currentAudio = null;
         state.tts.currentKey = null;
@@ -2613,6 +2621,10 @@ async function playMessageTts(message, key) {
     await audio.play();
     rerenderChatIfMounted();
   } catch (error) {
+    if (ephemeralObjectUrl) {
+      try { URL.revokeObjectURL(ephemeralObjectUrl); } catch {}
+      ephemeralObjectUrl = '';
+    }
     state.tts.currentAudio = null;
     state.tts.currentKey = null;
     state.tts.currentPaused = false;
