@@ -15,6 +15,7 @@ const state = {
   appConfig: { endpoints: null, providers: null },
   appUi: null,
   providerConfig: null,
+  nexusApiConfig: null,
   providerModelCache: {},
   favorites: [],
   sessionPrefs: {},
@@ -142,6 +143,7 @@ const el = {
   installAppHint: document.getElementById('install-app-hint'),
   endpointSettingsBtn: document.getElementById('endpoint-settings-btn'),
   providerSettingsBtn: document.getElementById('provider-settings-btn'),
+  setupStatusBtn: document.getElementById('setup-status-btn'),
   userManagementBtn: document.getElementById('user-management-btn'),
   settingsDialog: document.getElementById('settings-dialog'),
   settingsTitle: document.getElementById('settings-title'),
@@ -203,12 +205,28 @@ const el = {
   personaEditSave: document.getElementById('persona-edit-save'),
   providerSettingsDialog: document.getElementById('provider-settings-dialog'),
   closeProviderSettings: document.getElementById('close-provider-settings'),
+  setupStatusDialog: document.getElementById('setup-status-dialog'),
+  closeSetupStatus: document.getElementById('close-setup-status'),
+  refreshSetupStatus: document.getElementById('refresh-setup-status'),
+  openEndpointFromSetup: document.getElementById('open-endpoint-from-setup'),
+  setupStatusSummary: document.getElementById('setup-status-summary'),
+  setupStatusList: document.getElementById('setup-status-list'),
   providerOpenaiKey: document.getElementById('provider-openai-key'),
   providerOpenrouterKey: document.getElementById('provider-openrouter-key'),
   providerAnthropicKey: document.getElementById('provider-anthropic-key'),
   providerGeminiKey: document.getElementById('provider-gemini-key'),
   providerXaiKey: document.getElementById('provider-xai-key'),
   saveProviderSettings: document.getElementById('save-provider-settings'),
+  endpointRouteSummary: document.getElementById('endpoint-route-summary'),
+  nexusApiEnabled: document.getElementById('nexus-api-enabled'),
+  nexusApiAllowSession: document.getElementById('nexus-api-allow-session'),
+  nexusApiOfflineMessage: document.getElementById('nexus-api-offline-message'),
+  saveNexusApiSettings: document.getElementById('save-nexus-api-settings'),
+  nexusApiNewKeyLabel: document.getElementById('nexus-api-new-key-label'),
+  nexusApiNewKeyNotes: document.getElementById('nexus-api-new-key-notes'),
+  createNexusApiKey: document.getElementById('create-nexus-api-key'),
+  nexusApiNewKeyResult: document.getElementById('nexus-api-new-key-result'),
+  nexusApiKeyList: document.getElementById('nexus-api-key-list'),
   acquireCount: document.getElementById('acquire-count'),
   acquireStrictness: document.getElementById('acquire-strictness'),
   acquireChubBtn: document.getElementById('acquire-chub-btn'),
@@ -518,6 +536,10 @@ function getAssistantBadgeLabel() {
 }
 function getCharacterModel() { return state.selectedCharacterSettings?.modelOverride || state.selectedModel || state.bootstrap?.defaultModel; }
 function getCharacterTemperature() { return typeof state.selectedCharacterSettings?.temperature === 'number' ? state.selectedCharacterSettings.temperature : 0.85; }
+function getCharacterMaxTokens() {
+  const value = Number(state.selectedCharacterSettings?.maxTokens);
+  return Number.isFinite(value) ? Math.max(64, Math.min(8192, Math.round(value))) : 1024;
+}
 function getCharacterAutoplayVoiceEnabled() { return !!state.selectedCharacterSettings?.autoplayVoice; }
 function getCharacterFishReferenceId() { return String(state.selectedCharacterSettings?.fishReferenceId || '').trim(); }
 function getCharacterTtsFormat() { return state.selectedCharacterSettings?.ttsFormat || 'mp3'; }
@@ -1004,8 +1026,10 @@ function applySettings(settings = getUiSettings()) {
     el.endpointFallbackOverrideModel2.value = override2.model || '';
     el.endpointFallbackOverrideKey2.value = '';
     refreshFallbackModelSelectors();
+    renderEndpointRouteSummary();
   }
 }
+
 
 function setBackendStatus(text, online) {
   el.backendStatus.innerHTML = `<span class="dot ${online ? 'online' : 'offline'}"></span>${text}`;
@@ -1147,6 +1171,19 @@ function updateFallbackProviderVisibility() {
   el.endpointFallbackKeyRow2.classList.toggle('hidden', (el.endpointFallbackProvider2.value || 'local') === 'local');
 }
 
+function renderEndpointRouteSummary() {
+  if (!el.endpointRouteSummary || !state.appConfig?.endpoints) return;
+  const endpoints = state.appConfig.endpoints;
+  const primaryModel = el.endpointMainModel?.value || endpoints.mainModel || endpoints.defaultModel || state.bootstrap?.defaultModel || 'default';
+  const fallback1 = `${el.endpointFallbackProvider1?.value || endpoints.fallbackProvider1 || 'local'} / ${el.endpointFallbackModel1?.value || endpoints.fallbackModel1 || 'none'}`;
+  const fallback2 = `${el.endpointFallbackProvider2?.value || endpoints.fallbackProvider2 || 'local'} / ${el.endpointFallbackModel2?.value || endpoints.fallbackModel2 || 'none'}`;
+  el.endpointRouteSummary.innerHTML = `
+    <div class="eyebrow">Effective route summary</div>
+    <div><strong>Primary:</strong> local / ${escapeHtml(primaryModel)}</div>
+    <div><strong>Fallback 1:</strong> ${escapeHtml(fallback1)}</div>
+    <div><strong>Fallback 2:</strong> ${escapeHtml(fallback2)}</div>`;
+}
+
 async function refreshFallbackModelSelectors() {
   if (!isAdmin() || !state.appConfig?.endpoints) return;
   const provider1 = el.endpointFallbackProvider1.value || 'local';
@@ -1156,7 +1193,9 @@ async function refreshFallbackModelSelectors() {
   renderEndpointModelSelect(el.endpointFallbackModel1, state.appConfig?.endpoints?.fallbackModel1, `No ${provider1} fallback selected`, models1);
   renderEndpointModelSelect(el.endpointFallbackModel2, state.appConfig?.endpoints?.fallbackModel2, `No ${provider2} fallback selected`, models2);
   updateFallbackProviderVisibility();
+  renderEndpointRouteSummary();
 }
+
 
 function updateTtsStatusButton() {
   if (!el.ttsStatusButton) return;
@@ -2104,19 +2143,28 @@ function stopCurrentTts({ reset = true } = {}) {
   rerenderChatIfMounted();
 }
 
-function normalizeTtsRequestText(text) {
-  return String(text || '').replace(/\s+/g, ' ').trim();
+function normalizeTtsRequestText(text, options = {}) {
+  const includeNarration = options.includeAsteriskNarration === true;
+  let value = String(text || '');
+  if (!includeNarration) {
+    value = value
+      .replace(/\*([^*\n][\s\S]*?[^*\n])\*/g, ' ')
+      .replace(/_([^_\n][\s\S]*?[^_\n])_/g, ' ');
+  }
+  return value
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-async function fetchTtsAudio({ characterId, text, stream = false }) {
-  const normalizedText = normalizeTtsRequestText(text);
+async function fetchTtsAudio({ characterId, text, stream = false, includeAsteriskNarration = false }) {
+  const normalizedText = normalizeTtsRequestText(text, { includeAsteriskNarration });
   if (!characterId) throw new Error('Character is required');
   if (!normalizedText) throw new Error('Text is required');
   const response = await fetch('./api/tts', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ characterId, text: normalizedText, stream }),
+    body: JSON.stringify({ characterId, text: normalizedText, stream, includeAsteriskNarration }),
   });
   if (!response.ok) {
     const json = await response.json().catch(() => ({}));
@@ -2485,7 +2533,8 @@ async function streamAudioResponseToObjectUrl(response, key) {
 }
 
 async function playMessageTts(message, key) {
-  const text = normalizeTtsRequestText(getMessageText(message));
+  const includeAsteriskNarration = getCharacterTtsReadNarration();
+  const text = normalizeTtsRequestText(getMessageText(message), { includeAsteriskNarration });
   if (!text || !state.selectedCharacterId) return;
 
   if (state.tts.currentKey === key && state.tts.currentAudio) {
@@ -2529,7 +2578,7 @@ async function playMessageTts(message, key) {
     state.tts.loadingKeys[key] = true;
     rerenderChatIfMounted();
     try {
-      const { blob, emotionTag } = await fetchTtsAudioBlob({ characterId: state.selectedCharacterId, text });
+      const { blob, emotionTag } = await fetchTtsAudioBlob({ characterId: state.selectedCharacterId, text, includeAsteriskNarration });
       if (emotionTag) state.tts.debugTags[key] = emotionTag;
       objectUrl = URL.createObjectURL(blob);
       state.tts.objectUrls[key] = objectUrl;
@@ -3051,13 +3100,99 @@ async function createCharacterFromDialog() {
 
 async function loadProviderConfig() {
   if (!isAdmin()) return null;
-  state.providerConfig = await api('./api/config/providers');
+  const [providers, nexusApi] = await Promise.all([
+    api('./api/config/providers'),
+    api('./api/admin/nexus-api'),
+  ]);
+  state.providerConfig = providers;
+  state.nexusApiConfig = nexusApi;
   el.providerOpenaiKey.value = '';
   el.providerOpenrouterKey.value = '';
   el.providerAnthropicKey.value = '';
   el.providerGeminiKey.value = '';
   el.providerXaiKey.value = '';
+  if (el.nexusApiEnabled) el.nexusApiEnabled.value = nexusApi.enabled === false ? 'off' : 'on';
+  if (el.nexusApiAllowSession) el.nexusApiAllowSession.value = nexusApi.allowSessionAuth === false ? 'off' : 'on';
+  if (el.nexusApiOfflineMessage) el.nexusApiOfflineMessage.value = nexusApi.offlineMessage || '';
+  if (el.nexusApiNewKeyResult) el.nexusApiNewKeyResult.textContent = '';
+  renderNexusApiKeys();
   return state.providerConfig;
+}
+
+
+function renderNexusApiKeys() {
+  if (!el.nexusApiKeyList) return;
+  const keys = Array.isArray(state.nexusApiConfig?.keys) ? state.nexusApiConfig.keys : [];
+  if (!keys.length) {
+    el.nexusApiKeyList.innerHTML = '<div class="info-card">No NEXUS API keys yet. Make one above.</div>';
+    return;
+  }
+  el.nexusApiKeyList.innerHTML = keys.map((key) => `
+    <div class="user-row nexus-api-key-row" data-key-id="${escapeHtml(key.id)}">
+      <div>
+        <strong>${escapeHtml(key.label || 'Unnamed key')}</strong>
+        <div class="meta-line">${escapeHtml(key.secretPreview || '')} · ${escapeHtml(key.status || 'active')} · created ${escapeHtml(key.createdAt || '')}</div>
+        <div class="meta-line">Last used: ${escapeHtml(key.lastUsedAt || 'never')} ${key.lastUsedMeta?.ip ? `· ${escapeHtml(key.lastUsedMeta.ip)}` : ''}</div>
+        ${key.notes ? `<div class="meta-line">${escapeHtml(key.notes)}</div>` : ''}
+      </div>
+      <div class="dialog-actions split-actions">
+        <button type="button" class="secondary nexus-api-rotate" data-key-id="${escapeHtml(key.id)}">Rotate</button>
+        <button type="button" class="secondary nexus-api-toggle" data-key-id="${escapeHtml(key.id)}" data-next-status="${key.status === 'active' ? 'disabled' : 'active'}">${key.status === 'active' ? 'Disable' : 'Enable'}</button>
+        <button type="button" class="secondary nexus-api-revoke" data-key-id="${escapeHtml(key.id)}">Revoke</button>
+        <button type="button" class="secondary nexus-api-delete" data-key-id="${escapeHtml(key.id)}">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+async function saveNexusApiSettings() {
+  if (!isAdmin()) return;
+  state.nexusApiConfig = await api('./api/admin/nexus-api/settings', {
+    method: 'PUT',
+    body: JSON.stringify({
+      enabled: el.nexusApiEnabled.value === 'on',
+      allowSessionAuth: el.nexusApiAllowSession.value === 'on',
+      offlineMessage: el.nexusApiOfflineMessage.value.trim(),
+    }),
+  });
+  renderNexusApiKeys();
+  if (el.nexusApiNewKeyResult) el.nexusApiNewKeyResult.textContent = 'NEXUS API settings saved.';
+}
+
+async function createNexusApiKey() {
+  if (!isAdmin()) return;
+  const label = el.nexusApiNewKeyLabel.value.trim() || 'New API key';
+  const notes = el.nexusApiNewKeyNotes.value.trim();
+  const result = await api('./api/admin/nexus-api/keys', {
+    method: 'POST',
+    body: JSON.stringify({ label, notes }),
+  });
+  state.nexusApiConfig = await api('./api/admin/nexus-api');
+  renderNexusApiKeys();
+  el.nexusApiNewKeyLabel.value = '';
+  el.nexusApiNewKeyNotes.value = '';
+  if (el.nexusApiNewKeyResult) el.nexusApiNewKeyResult.textContent = `New API key (shown once): ${result.secret}`;
+}
+
+async function updateNexusApiKeyStatus(keyId, status) {
+  if (!isAdmin() || !keyId) return;
+  await api(`./api/admin/nexus-api/keys/${encodeURIComponent(keyId)}`, { method: 'PUT', body: JSON.stringify({ status }) });
+  state.nexusApiConfig = await api('./api/admin/nexus-api');
+  renderNexusApiKeys();
+}
+
+async function rotateNexusApiKey(keyId) {
+  if (!isAdmin() || !keyId) return;
+  const result = await api(`./api/admin/nexus-api/keys/${encodeURIComponent(keyId)}/rotate`, { method: 'POST', body: JSON.stringify({}) });
+  state.nexusApiConfig = await api('./api/admin/nexus-api');
+  renderNexusApiKeys();
+  if (el.nexusApiNewKeyResult) el.nexusApiNewKeyResult.textContent = `Rotated key secret (shown once): ${result.secret}`;
+}
+
+async function deleteNexusApiKey(keyId) {
+  if (!isAdmin() || !keyId) return;
+  await api(`./api/admin/nexus-api/keys/${encodeURIComponent(keyId)}`, { method: 'DELETE' });
+  state.nexusApiConfig = await api('./api/admin/nexus-api');
+  renderNexusApiKeys();
 }
 
 async function saveProviderSettings() {
@@ -3078,6 +3213,7 @@ async function saveProviderSettings() {
 
 async function saveEndpointSettings() {
   if (!isAdmin()) return;
+  if (!el.endpointDefaultModel.value.trim() && !el.endpointMainModel.value) throw new Error('Pick a default or primary model first.');
   const fallbackProvider1 = el.endpointFallbackProvider1.value || 'local';
   const fallbackProvider2 = el.endpointFallbackProvider2.value || 'local';
   const localProfiles = el.endpointLocalProfiles.value.split('\n').map((line, index) => {
@@ -3131,6 +3267,7 @@ async function saveEndpointSettings() {
   await refreshBootstrapPreserveSelection();
   await pollModels();
   applySettings();
+  renderEndpointRouteSummary();
 }
 
 const saveCharacterSettingsDebounced = debounce(async (patch) => {
@@ -3383,6 +3520,11 @@ function renderCharacterPanel() {
         <span>Temperature <strong id="temp-value">${temp.toFixed(2)}</strong></span>
         <input id="character-temperature" type="range" min="0.2" max="1.4" step="0.05" value="${temp}" />
       </label>
+      <label class="field">
+        <span>Max tokens <strong id="max-tokens-value">${getCharacterMaxTokens()}</strong></span>
+        <input id="character-max-tokens" type="range" min="64" max="8192" step="64" value="${getCharacterMaxTokens()}" />
+      </label>
+      <div class="meta-line">Higher = longer replies when the backend/model supports it.</div>
     </section>
 
     <section class="info-card">
@@ -3477,6 +3619,13 @@ function renderCharacterPanel() {
     state.selectedCharacterSettings.temperature = value;
     el.characterPanelContent.querySelector('#temp-value').textContent = value.toFixed(2);
     saveCharacterSettingsDebounced({ temperature: value });
+  });
+
+  el.characterPanelContent.querySelector('#character-max-tokens')?.addEventListener('input', (e) => {
+    const value = Math.max(64, Math.min(8192, Number(e.target.value) || 1024));
+    state.selectedCharacterSettings.maxTokens = value;
+    el.characterPanelContent.querySelector('#max-tokens-value').textContent = String(value);
+    saveCharacterSettingsDebounced({ maxTokens: value });
   });
 
   el.characterPanelContent.querySelector('#character-voice-label')?.addEventListener('input', (e) => {
@@ -3906,10 +4055,38 @@ async function sendMessage() {
   }
 }
 
+function renderSetupStatus(status = {}) {
+  if (!el.setupStatusSummary || !el.setupStatusList) return;
+  const level = status.level || (status.ok ? 'ok' : 'warn');
+  el.setupStatusSummary.className = `setup-status-summary ${level}`;
+  el.setupStatusSummary.textContent = status.summary || 'Setup check finished.';
+  el.setupStatusList.innerHTML = (status.checks || []).map((check) => {
+    const levelClass = check.level || (check.ok ? 'ok' : 'warn');
+    const icon = levelClass === 'error' ? '❌' : levelClass === 'warn' ? '⚠️' : levelClass === 'info' ? 'ℹ️' : '✅';
+    return `<div class="setup-check ${levelClass}">
+      <div class="setup-check-main"><span class="setup-check-icon">${icon}</span><span>${escapeHtml(check.message || check.key || 'Setup check')}</span></div>
+      ${check.fix ? `<div class="setup-check-fix">Fix: ${escapeHtml(check.fix)}</div>` : ''}
+    </div>`;
+  }).join('') || '<div class="meta-line">No setup checks returned. Suspicious, but quiet.</div>';
+}
+
+async function loadSetupStatus() {
+  if (!isAdmin()) return null;
+  if (el.setupStatusSummary) {
+    el.setupStatusSummary.className = 'setup-status-summary';
+    el.setupStatusSummary.textContent = 'Checking setup…';
+  }
+  if (el.setupStatusList) el.setupStatusList.innerHTML = '';
+  const status = await api('./api/setup/status');
+  renderSetupStatus(status);
+  return status;
+}
+
 function openSettings(kind = 'ui') {
   if (kind === 'ui') el.settingsDialog.showModal();
   if (kind === 'endpoint' && isAdmin()) el.endpointSettingsDialog.showModal();
   if (kind === 'providers' && isAdmin()) el.providerSettingsDialog.showModal();
+  if (kind === 'setup' && isAdmin()) { el.setupStatusDialog.showModal(); loadSetupStatus().catch((error) => renderSetupStatus({ ok: false, level: 'error', summary: `Setup check failed: ${error.message}`, checks: [] })); }
   if (kind === 'users' && isAdmin()) el.userManagementDialog.showModal();
 }
 
@@ -4452,10 +4629,14 @@ function wireEvents() {
   el.uiSettingsBtn.addEventListener('click', () => openSettings('ui'));
   el.endpointSettingsBtn.addEventListener('click', () => openSettings('endpoint'));
   el.providerSettingsBtn.addEventListener('click', async () => { if (!isAdmin()) return; await loadProviderConfig(); openSettings('providers'); });
+  el.setupStatusBtn?.addEventListener('click', () => openSettings('setup'));
   el.userManagementBtn.addEventListener('click', async () => { if (!isAdmin()) return; await loadUsersAdmin(); openSettings('users'); });
   el.closeSettings.addEventListener('click', () => el.settingsDialog.close());
   el.closeEndpointSettings.addEventListener('click', () => el.endpointSettingsDialog.close());
   el.closeProviderSettings.addEventListener('click', () => el.providerSettingsDialog.close());
+  el.closeSetupStatus?.addEventListener('click', () => el.setupStatusDialog.close());
+  el.refreshSetupStatus?.addEventListener('click', () => loadSetupStatus().catch((error) => renderSetupStatus({ ok: false, level: 'error', summary: `Setup check failed: ${error.message}`, checks: [] })));
+  el.openEndpointFromSetup?.addEventListener('click', () => { el.setupStatusDialog.close(); openSettings('endpoint'); });
   el.closeUserManagement.addEventListener('click', () => el.userManagementDialog.close());
   el.closeRewindConfirm?.addEventListener('click', closeRewindConfirmDialog);
   el.cancelRewindConfirm?.addEventListener('click', closeRewindConfirmDialog);
@@ -4500,6 +4681,16 @@ function wireEvents() {
   });
   el.saveEndpointSettings.addEventListener('click', async () => { await saveEndpointSettings(); el.endpointSettingsDialog.close(); });
   el.saveProviderSettings.addEventListener('click', saveProviderSettings);
+  el.saveNexusApiSettings?.addEventListener('click', saveNexusApiSettings);
+  el.createNexusApiKey?.addEventListener('click', createNexusApiKey);
+  el.nexusApiKeyList?.addEventListener('click', async (event) => {
+    const keyId = event.target?.dataset?.keyId;
+    if (!keyId) return;
+    if (event.target.classList.contains('nexus-api-toggle')) return updateNexusApiKeyStatus(keyId, event.target.dataset.nextStatus || 'disabled');
+    if (event.target.classList.contains('nexus-api-revoke')) return updateNexusApiKeyStatus(keyId, 'revoked');
+    if (event.target.classList.contains('nexus-api-rotate')) return rotateNexusApiKey(keyId);
+    if (event.target.classList.contains('nexus-api-delete')) return deleteNexusApiKey(keyId);
+  });
   el.acquireChubBtn?.addEventListener('click', acquireFreshBatch);
   el.createCharacterBtn.addEventListener('click', () => openCreateCharacterDialog());
   el.closeCharacterCreate.addEventListener('click', () => el.characterCreateDialog.close());

@@ -9,6 +9,25 @@ import extract from 'png-chunks-extract';
 import PNGtext from 'png-chunk-text';
 import { FishAudioClient, RealtimeEvents } from 'fish-audio';
 
+function loadDotEnvFile(filePath = path.join(process.cwd(), '.env')) {
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const index = trimmed.indexOf('=');
+      if (index === -1) continue;
+      const key = trimmed.slice(0, index).trim();
+      if (!key || process.env[key] !== undefined) continue;
+      let value = trimmed.slice(index + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
+      process.env[key] = value;
+    }
+  } catch {}
+}
+
+loadDotEnvFile();
+
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const BASE_PATH = process.env.BASE_PATH || '/aichat';
@@ -487,7 +506,7 @@ function sanitizeAvatarReferencePrompt(value) {
     .trim();
 
   const appearanceRe = /(hair|bob|ponytail|bangs|eyes?|skin|face|facial|outfit|clothes|clothing|blouse|shirt|jacket|dress|trousers|pants|boots?|neck|silhouette|body type|pale skin|sharp angles|manicured|sleeves|collar)/i;
-  const dialogueRe = /^([“"']|so|hey|what|why|are you|i|we)/i;
+  const dialogueRe = /^([“"']|so\b|hey\b|what\b|why\b|are you\b|i\b|we\b)/i;
   const parts = cleaned
     .split(/(?<=[.!?])\s+/)
     .map((part) => part.trim().replace(/^[:,;\-.]+|[:,;\-.]+$/g, ''))
@@ -497,11 +516,11 @@ function sanitizeAvatarReferencePrompt(value) {
   const weighted = [];
   for (const rawPart of parts) {
     let part = rawPart
-      .replace(/across from you/gi, 'across from the viewer')
-      .replace(/you flip through/gi, 'a folder being examined')
-      .replace(/you/gi, 'the viewer')
-      .replace(/her expression neutral as she watches/gi, 'neutral expression, watching')
-      .replace(/medium shot/gi, '')
+      .replace(/\bacross from you\b/gi, 'across from the viewer')
+      .replace(/\byou flip through\b/gi, 'a folder being examined')
+      .replace(/\byou\b/gi, 'the viewer')
+      .replace(/\bher expression neutral as she watches\b/gi, 'neutral expression, watching')
+      .replace(/\bmedium shot\b/gi, '')
       .replace(/\s+/g, ' ')
       .replace(/\s+,/g, ',')
       .trim()
@@ -525,7 +544,7 @@ function sanitizeAvatarReferencePrompt(value) {
 
   const normalized = picked
     .map((part) => part
-      .replace(/Anby/gi, '')
+      .replace(/\bAnby\b/gi, '')
       .replace(/\s+/g, ' ')
       .replace(/^[:,;\-.]+|[:,;\-.]+$/g, '')
       .trim())
@@ -1087,6 +1106,12 @@ function defaultAppConfig() {
       gemini: { enabled: false, apiKey: '', baseUrl: '', defaultModel: '' },
       xai: { enabled: false, apiKey: '', baseUrl: '', defaultModel: '' },
     },
+    nexusApi: {
+      enabled: true,
+      allowSessionAuth: true,
+      offlineMessage: 'NEXUS API is currently disabled by the admin.',
+      keys: [],
+    },
   };
 }
 
@@ -1175,6 +1200,24 @@ async function loadAppConfig() {
       providerLabel: endpoints.providerLabel || activeLocalProfile.label || DEFAULT_PROVIDER_LABEL,
     },
     providers: Object.fromEntries(Object.entries(defaults.providers).map(([key, value]) => [key, { ...value, ...((parsed.providers || {})[key] || {}) }])),
+    nexusApi: {
+      ...defaults.nexusApi,
+      ...((parsed.nexusApi || {})),
+      keys: Array.isArray(parsed?.nexusApi?.keys) ? parsed.nexusApi.keys.map((item) => ({
+        id: String(item?.id || '').trim(),
+        label: String(item?.label || 'Unnamed key').trim() || 'Unnamed key',
+        secretHash: String(item?.secretHash || '').trim(),
+        secretPreview: String(item?.secretPreview || '').trim(),
+        status: ['active', 'disabled', 'revoked'].includes(String(item?.status || '').trim()) ? String(item.status).trim() : 'active',
+        createdAt: item?.createdAt || new Date().toISOString(),
+        updatedAt: item?.updatedAt || item?.createdAt || new Date().toISOString(),
+        lastUsedAt: item?.lastUsedAt || '',
+        lastUsedMeta: item?.lastUsedMeta || null,
+        notes: String(item?.notes || '').trim(),
+        createdBy: String(item?.createdBy || '').trim(),
+        rotatedFrom: String(item?.rotatedFrom || '').trim(),
+      })).filter((item) => item.id && item.secretHash) : [],
+    },
   };
 }
 
@@ -1189,6 +1232,112 @@ function maskProviders(providers = {}) {
     apiKey: value.apiKey ? `${String(value.apiKey).slice(0, 4)}••••${String(value.apiKey).slice(-2)}` : '',
     hasKey: Boolean(value.apiKey),
   }]));
+}
+
+function generateNexusApiSecret() {
+  return `nxs_${crypto.randomBytes(24).toString('base64url')}`;
+}
+
+function hashNexusApiSecret(secret = '') {
+  return crypto.createHash('sha256').update(String(secret || '').trim()).digest('hex');
+}
+
+function previewNexusApiSecret(secret = '') {
+  const value = String(secret || '').trim();
+  if (!value) return '';
+  return `${value.slice(0, 8)}••••${value.slice(-4)}`;
+}
+
+function maskNexusApiKeyRecord(record = {}) {
+  return {
+    id: String(record.id || '').trim(),
+    label: String(record.label || 'Unnamed key').trim() || 'Unnamed key',
+    secretPreview: String(record.secretPreview || '').trim(),
+    status: ['active', 'disabled', 'revoked'].includes(String(record.status || '').trim()) ? String(record.status).trim() : 'active',
+    createdAt: record.createdAt || '',
+    updatedAt: record.updatedAt || '',
+    lastUsedAt: record.lastUsedAt || '',
+    lastUsedMeta: record.lastUsedMeta || null,
+    notes: String(record.notes || '').trim(),
+    createdBy: String(record.createdBy || '').trim(),
+    rotatedFrom: String(record.rotatedFrom || '').trim(),
+  };
+}
+
+function getClientIp(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',').map((part) => part.trim()).filter(Boolean)[0];
+  return forwarded || req.ip || req.socket?.remoteAddress || '';
+}
+
+async function authenticateNexusApiRequest(req, { allowSessionFallback = true } = {}) {
+  const config = await loadAppConfig();
+  const nexusApi = { ...defaultAppConfig().nexusApi, ...(config.nexusApi || {}) };
+  if (nexusApi.enabled !== true) {
+    const error = new Error(String(nexusApi.offlineMessage || 'NEXUS API is currently disabled by the admin.'));
+    error.statusCode = 503;
+    error.payload = { ok: false, error: 'NEXUS API disabled', detail: String(nexusApi.offlineMessage || 'NEXUS API is currently disabled by the admin.') };
+    throw error;
+  }
+
+  const authHeader = String(req.headers.authorization || '').trim();
+  if (/^Bearer\s+/i.test(authHeader)) {
+    const secret = authHeader.replace(/^Bearer\s+/i, '').trim();
+    const secretHash = hashNexusApiSecret(secret);
+    const match = (Array.isArray(nexusApi.keys) ? nexusApi.keys : []).find((item) => item.secretHash === secretHash);
+    if (!match) {
+      const error = new Error('Invalid API key');
+      error.statusCode = 401;
+      error.payload = { ok: false, error: 'Invalid API key' };
+      throw error;
+    }
+    if (match.status !== 'active') {
+      const error = new Error(`API key is ${match.status}`);
+      error.statusCode = 403;
+      error.payload = { ok: false, error: `API key is ${match.status}` };
+      throw error;
+    }
+    match.lastUsedAt = new Date().toISOString();
+    match.updatedAt = match.lastUsedAt;
+    match.lastUsedMeta = {
+      ip: getClientIp(req),
+      userAgent: String(req.headers['user-agent'] || '').slice(0, 240),
+    };
+    config.nexusApi = nexusApi;
+    await saveAppConfig(config);
+    req.nexusApiKey = maskNexusApiKeyRecord(match);
+    req.nexusAuthMode = 'api-key';
+    req.authUser = { username: `api-${String(match.id || 'key').slice(0, 12)}`, displayName: match.label || 'API client', isAdmin: false, role: 'user' };
+    return { mode: 'api-key', config, nexusApi, key: match };
+  }
+
+  if (allowSessionFallback && nexusApi.allowSessionAuth === true) {
+    const session = getAuthenticatedSession(req);
+    if (session) {
+      const usersFile = await loadUsers();
+      const user = usersFile.users?.[session.username];
+      if (user) {
+        req.authUser = sanitizeUser(user);
+        req.authUserRecord = user;
+        req.sessionToken = session.token;
+        req.nexusAuthMode = 'session';
+        return { mode: 'session', config, nexusApi, user };
+      }
+    }
+  }
+
+  const error = new Error(nexusApi.allowSessionAuth === true ? 'Authentication required (session or Bearer API key)' : 'Bearer API key required');
+  error.statusCode = 401;
+  error.payload = { ok: false, error: nexusApi.allowSessionAuth === true ? 'Authentication required (session or Bearer API key)' : 'Bearer API key required' };
+  throw error;
+}
+
+async function requireNexusApiAccess(req, res, next) {
+  try {
+    await authenticateNexusApiRequest(req, { allowSessionFallback: true });
+    next();
+  } catch (error) {
+    res.status(error.statusCode || 401).json(error.payload || { ok: false, error: String(error?.message || error) });
+  }
 }
 
 async function saveDataUrlAsset(dataUrl, baseName) {
@@ -1952,7 +2101,7 @@ function startAcquisitionScript({ requestedBy = 'system', batchSize = 6, scoreTh
     cwd: process.cwd(),
     env: {
       ...process.env,
-      AICHAT_BASE_URL: `https://your-domain.example${BASE_PATH}`,
+      AICHAT_BASE_URL: `${PUBLIC_APP_ORIGIN}${BASE_PATH}`,
       AICHAT_USERNAME: requestedBy,
       AICHAT_PASSWORD: password,
       CHUB_MAX_IMPORTS: String(batchSize),
@@ -2283,6 +2432,7 @@ function getCharacterSettings(userStore, characterId) {
     notes: '',
     modelOverride: '',
     temperature: 0.85,
+    maxTokens: Number.isFinite(Number(stored.maxTokens)) ? Math.max(64, Math.min(8192, Math.round(Number(stored.maxTokens)))) : 1024,
     background: '',
     backgroundSearch: '',
     autoplayVoice: stored.autoplayVoice === true || stored.ttsEnabled === true,
@@ -2645,7 +2795,11 @@ function normalizeMoanLikeToken(token = '') {
 function normalizeTtsMoans(value = '') {
   let text = String(value || '');
 
-  text = text.replace(/(?<![\[(])\b[ahmnuog~!.?,-]{4,}\b(?![\])])/gi, (token) => normalizeMoanLikeToken(token));
+  text = text.replace(/(?<![\[(])\b[ahmnuog~!?,.-]{4,}\b(?![\])])/gi, (token) => {
+    const plain = String(token || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (!/[ahmnuog]{4,}/.test(plain)) return token;
+    return normalizeMoanLikeToken(token);
+  });
   text = text.replace(/\b(?:Ahh\s*){2,}/gi, 'Ahh ');
   text = text.replace(/\b(?:Ahn\s*){2,}/gi, 'Ahn ');
   text = text.replace(/\b(?:Mm\s*){2,}/gi, 'Mm ');
@@ -2666,6 +2820,7 @@ function stripEmojiForTts(value = '') {
 
 function normalizeTtsText(value = '') {
   const text = stripEmojiForTts(normalizeTtsMoans(String(value || '')))
+    .replace(/~/g, ' ')
     .replace(/\*/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -2684,6 +2839,13 @@ function normalizeTtsText(value = '') {
 
 function hasInlineFishEmotionTags(value = '') {
   return /(^|\s)[\[(]([a-z][a-z\s-]{1,40})[\])](?=\s|$)/i.test(String(value || ''));
+}
+
+function stripInlineFishEmotionTags(value = '') {
+  return String(value || '')
+    .replace(/[\[(]([a-z][a-z\s-]{1,40})[\])]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function sanitizeTtsEmotionModelOutput(value = '') {
@@ -2738,6 +2900,7 @@ function countPatternMatches(text = '', pattern) {
 
 function cleanTtsSpeechText(value = '') {
   return String(value || '')
+    .replace(/#/g, ' ')
     .replace(/^[\s:;,.;!?—-]+/g, '')
     .replace(/[\s:;—-]+$/g, '')
     .replace(/\s+/g, ' ')
@@ -2762,25 +2925,68 @@ function extractQuotedTtsSegments(rawText = '') {
 function stripRpNarrationForTts(rawText = '', options = {}) {
   const raw = String(rawText || '');
   const includeAsteriskNarration = options.includeAsteriskNarration === true;
-  if (includeAsteriskNarration) {
-    return raw
-      .replace(/\*([^*]{1,500})\*/g, '$1')
-      .replace(/["“”]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
+  const countWords = (value = '') => (String(value || '').trim().match(/[A-Za-z0-9][A-Za-z0-9'’_-]*/g) || []).length;
+  const isLikelyActionSpan = (content = '') => {
+    const value = String(content || '').trim();
+    if (!value) return false;
+    return /^(?:a\s+broken\s+)?(?:moan|gasp|sob|whimper)\b.*\b(?:spills|escapes|breaks|cracks)\b/i.test(value)
+      || /^(?:her|his|their|your)\s+(?:head|hands?|fingers?|nails?|body|breath|voice|eyes?|thighs?|hips?|back|mouth|tongue|shoulders?|chest|breasts?)\b/i.test(value)
+      || /^(?:she|he|they|you)\s+(?:reaches?|pulls?|pushes?|leans?|steps?|backs?|moves?|walks?|shifts?|tilts?|turns?|looks?|watches?|holds?|cups?|grabs?|drags?|slides?|hooks?|writhes?|trembles?|shudders?|gasps?|moans?|whimpers?|sobs?|cries?|bites?|soothes?|kisses?|arches?|rolls?|tightens?|clenches?)\b/i.test(value)
+      || /^(?:reaches?|pulls?|pushes?|leans?|steps?|backs?|moves?|walks?|shifts?|tilts?|turns?|looks?|watches?|holds?|cups?|grabs?|drags?|slides?|hooks?|writhes?|trembles?|shudders?|gasps?|moans?|whimpers?|sobs?|cries?|bites?|soothes?|kisses?|arches?|rolls?|tightens?|clenches?|exposes?|waits?)\b/i.test(value)
+      || /\b(?:against\s+the\s+pillow|nails?\s+bite|whole\s+body|hips?\s+experimentally|thighs?\s+tighten|eyes?\s+find|half-lidded|back\s+arching|voice\s+cracks|breath\s+stutters|hands?\s+shake)\b/i.test(value);
+  };
+  const isSpeakableAsteriskDialogue = (content = '') => {
+    const value = String(content || '').trim();
+    if (!value) return false;
+    if (/^[A-Za-z0-9][A-Za-z0-9'’_-]*$/.test(value)) return true;
+    if (isLikelyActionSpan(value)) return false;
+    if (/[.!?…—-]$/.test(value) && /\b(i|i'm|i’ve|i'd|i’ll|me|my|mine|you|you're|you've|you'd|we|we're|he|she|they|it|your|yours|want|need|love|hate|feel|think|know|am|are|is|was|were|do|don't|can't|won't|please|yes|no)\b/i.test(value)) return true;
+    return false;
+  };
+  const replaceEmphasisSpan = (_, inner = '') => {
+    const content = String(inner || '').trim();
+    if (!content) return ' ';
+    if (includeAsteriskNarration) return content;
+    if (isLikelyActionSpan(content)) return ' ';
+    if (isSpeakableAsteriskDialogue(content)) return content;
+    if (countWords(content) <= 4 && !/[,.].{0,}$/i.test(content)) return content;
+    return ' ';
+  };
+  const stripInlineMarkup = (value = '') => String(value || '')
+    .replace(/\*\*([^*]{1,500})\*\*/g, replaceEmphasisSpan)
+    .replace(/\*([^*]{1,500})\*/g, replaceEmphasisSpan)
+    .replace(/__([^_]{1,500})__/g, replaceEmphasisSpan)
+    .replace(/_([^_]{1,500})_/g, replaceEmphasisSpan)
+    .replace(/[\*_]+/g, ' ');
+  const processParagraph = (paragraph = '') => {
+    const value = String(paragraph || '').trim();
+    if (!value) return '';
+    if (!includeAsteriskNarration && /^\*[^]*\*$/.test(value)) {
+      const inner = value.replace(/^\*+/, '').replace(/\*+$/, '').trim();
+      return isSpeakableAsteriskDialogue(inner) ? stripInlineMarkup(inner) : '';
+    }
+    if (!includeAsteriskNarration && /^_[^]*_$/.test(value)) {
+      const inner = value.replace(/^_+/, '').replace(/_+$/, '').trim();
+      return isSpeakableAsteriskDialogue(inner) ? stripInlineMarkup(inner) : '';
+    }
+    return stripInlineMarkup(value);
+  };
 
-  const quoted = extractQuotedTtsSegments(raw);
-  if (quoted.length) return quoted.map((segment) => segment.speech).join(' ');
   return raw
-    .replace(/\*([^*]{1,500})\*/g, ' ')
+    .split(/\n\s*\n+/)
+    .map(processParagraph)
+    .filter(Boolean)
+    .join(' ')
     .replace(/["“”]/g, '')
+    .replace(/([,;:!?])(\S)/g, '$1 $2')
+    .replace(/([A-Za-z0-9])([—-])(?!\s)/g, '$1$2 ')
+    .replace(/\s+([,;:!?])/g, '$1')
     .replace(/\s+/g, ' ')
     .trim();
 }
-
-function inferTtsDeliveryTags(context = '', speech = '') {
+function inferTtsDeliveryTags(context = '', speech = '', options = {}) {
   const haystack = `${context || ''} ${speech || ''}`.replace(/\s+/g, ' ').trim();
+  const maxPicked = Number.isFinite(options.maxTags) ? Math.max(1, Math.min(24, Math.floor(options.maxTags))) : 10;
   if (!haystack) return [];
 
   const scored = [];
@@ -2879,7 +3085,7 @@ function inferTtsDeliveryTags(context = '', speech = '') {
     if (categories.has(item.category) && item.category !== 'nonverbal') continue;
     picked.push(item.tag);
     categories.add(item.category);
-    if (picked.length >= 2) break;
+    if (picked.length >= maxPicked) break;
   }
   return picked;
 }
@@ -2911,7 +3117,7 @@ function parseTtsEmotionTags(value = '') {
       .trim();
     if (tag) tags.push(tag);
   }
-  return capTtsEmotionTagRepeats(tags, 1, 6);
+  return capTtsEmotionTagRepeats(tags, 1, 24);
 }
 
 function getTtsTagIntensity(tag = '') {
@@ -2924,8 +3130,19 @@ function getTtsTagIntensity(tag = '') {
   return 1;
 }
 
-function formatTtsEmotionTags(tags = []) {
-  const capped = capTtsEmotionTagRepeats(tags, 1, 3);
+function getTtsTagLimitForText(text = '') {
+  const length = cleanTtsSpeechText(text).length;
+  if (length >= 2200) return 24;
+  if (length >= 1600) return 20;
+  if (length >= 1100) return 16;
+  if (length >= 700) return 14;
+  if (length >= 350) return 12;
+  return 10;
+}
+
+function formatTtsEmotionTags(tags = [], options = {}) {
+  const maxTags = Number.isFinite(options.maxTags) ? Math.max(1, Math.min(24, Math.floor(options.maxTags))) : 10;
+  const capped = capTtsEmotionTagRepeats(tags, 1, maxTags);
   const expanded = [];
   for (const tag of capped) {
     const repeat = getTtsTagIntensity(tag);
@@ -2945,67 +3162,58 @@ function mergeTtsEmotionTags(...tagLists) {
 
 function extractAutoTtsEmotionTags(text = '', options = {}) {
   const normalizedText = stripRpNarrationForTts(text, options);
-  const tags = inferTtsDeliveryTags(text, normalizedText);
-  return capTtsEmotionTagRepeats(tags, 1, 3);
+  const maxTags = getTtsTagLimitForText(normalizedText);
+  const tags = inferTtsDeliveryTags(text, normalizedText, { maxTags });
+  return capTtsEmotionTagRepeats(tags, 1, maxTags);
 }
 
 async function tagTtsText({ text, character = null, settings = null } = {}) {
   const rawText = String(text || '').trim();
   const result = await maybeAddTtsEmotionTags({ text: rawText, character, settings });
-  const taggedText = normalizeTtsText(result.text);
-  const tags = parseTtsEmotionTags(taggedText);
+  const fallbackSpokenText = cleanTtsSpeechText(stripRpNarrationForTts(rawText, { includeAsteriskNarration: settings?.ttsReadNarration === true }));
+  const taggedText = normalizeTtsText(result.text || fallbackSpokenText);
+  const tags = result.tag ? parseTtsEmotionTags(result.tag) : parseTtsEmotionTags(taggedText);
   return {
     ok: true,
     input: rawText,
     text: taggedText,
     taggedText,
     tags,
-    tag: formatTtsEmotionTags(tags),
-    spokenText: stripRpNarrationForTts(rawText, { includeAsteriskNarration: settings?.ttsReadNarration === true }),
+    tag: result.tag || formatTtsEmotionTags(tags, { maxTags: getTtsTagLimitForText(rawText) }),
+    spokenText: cleanTtsSpeechText(stripRpNarrationForTts(rawText, { includeAsteriskNarration: settings?.ttsReadNarration === true })),
   };
 }
 
 function renderFishDirectedTtsText(rawText = '', options = {}) {
   const raw = String(rawText || '').trim();
   const includeAsteriskNarration = options.includeAsteriskNarration === true;
-  const quotedSegments = includeAsteriskNarration ? [] : extractQuotedTtsSegments(raw);
-  const rendered = [];
-  const debugTags = [];
-
-  if (quotedSegments.length) {
-    for (const segment of quotedSegments.slice(0, 8)) {
-      const tags = inferTtsDeliveryTags(segment.context, segment.speech);
-      debugTags.push(...tags);
-      const tagText = formatTtsEmotionTags(tags);
-      rendered.push(cleanTtsSpeechText(`${tagText ? `${tagText} ` : ''}${segment.speech}`));
-    }
-  } else {
-    const speech = cleanTtsSpeechText(stripRpNarrationForTts(raw, { includeAsteriskNarration }));
-    const tags = inferTtsDeliveryTags(raw, speech);
-    debugTags.push(...tags);
-    const tagText = formatTtsEmotionTags(tags);
-    if (speech) rendered.push(cleanTtsSpeechText(`${tagText ? `${tagText} ` : ''}${speech}`));
-  }
-
-  const text = rendered.join(' ').replace(/\s+/g, ' ').trim();
-  return { text: text || normalizeTtsText(raw), tags: capTtsEmotionTagRepeats(debugTags, 1, 6) };
+  const speech = cleanTtsSpeechText(stripRpNarrationForTts(raw, { includeAsteriskNarration }));
+  const maxTags = getTtsTagLimitForText(speech || raw);
+  const tags = inferTtsDeliveryTags(raw, speech, { maxTags });
+  const cappedTags = capTtsEmotionTagRepeats(tags, 1, maxTags);
+  const tagText = formatTtsEmotionTags(cappedTags, { maxTags });
+  const text = speech ? cleanTtsSpeechText(`${tagText ? `${tagText} ` : ''}${speech}`) : normalizeTtsText(raw);
+  return { text, tags: cappedTags };
 }
 
 async function maybeAddTtsEmotionTags({ text, character = null, settings = null }) {
   const rawText = String(text || '').trim();
   const includeAsteriskNarration = settings?.ttsReadNarration === true;
-  const spokenText = stripRpNarrationForTts(rawText, { includeAsteriskNarration });
+  const spokenText = cleanTtsSpeechText(stripRpNarrationForTts(rawText, { includeAsteriskNarration }));
   const normalizedText = normalizeTtsText(spokenText);
 
   if (hasInlineFishEmotionTags(normalizedText) || normalizedText.length < 8) {
-    const inlineTags = parseTtsEmotionTags(normalizedText);
-    const mergedTagText = formatTtsEmotionTags(inlineTags);
-    return { text: normalizedText, tag: mergedTagText };
+    const maxTags = getTtsTagLimitForText(normalizedText);
+    const inlineTags = capTtsEmotionTagRepeats(parseTtsEmotionTags(normalizedText), 1, maxTags);
+    const mergedTagText = formatTtsEmotionTags(inlineTags, { maxTags });
+    const textWithoutTags = stripInlineFishEmotionTags(normalizedText);
+    return { text: textWithoutTags, tag: mergedTagText };
   }
 
   const directed = renderFishDirectedTtsText(rawText, { includeAsteriskNarration });
   if (directed.tags.length) {
-    const tagText = formatTtsEmotionTags(directed.tags);
+    const maxTags = getTtsTagLimitForText(spokenText);
+    const tagText = formatTtsEmotionTags(directed.tags, { maxTags });
     return { text: normalizeTtsText(directed.text), tag: tagText };
   }
 
@@ -3041,13 +3249,13 @@ async function maybeAddTtsEmotionTags({ text, character = null, settings = null 
     if (!response.ok) throw new Error(`TTS emotion tag selection failed (${response.status})`);
 
     const json = await response.json();
-    const modelTags = capTtsEmotionTagRepeats(parseTtsEmotionTags(json?.choices?.[0]?.message?.content || ''), 1, 2);
-    const tag = formatTtsEmotionTags(modelTags);
-    const spokenText = stripRpNarrationForTts(rawText, { includeAsteriskNarration });
+    const maxTags = Math.min(10, getTtsTagLimitForText(spokenText));
+    const modelTags = capTtsEmotionTagRepeats(parseTtsEmotionTags(json?.choices?.[0]?.message?.content || ''), 1, maxTags);
+    const tag = formatTtsEmotionTags(modelTags, { maxTags });
     return { text: normalizeTtsText(tag ? `${tag} ${spokenText}` : spokenText), tag };
   } catch (error) {
     console.error('TTS emotion tagging fallback:', error);
-    return { text: normalizeTtsText(stripRpNarrationForTts(rawText, { includeAsteriskNarration })), tag: '' };
+    return { text: normalizeTtsText(spokenText), tag: '' };
   }
 }
 
@@ -3396,6 +3604,8 @@ async function generateCharacterReply({ userStore, authUser = null, characterId,
           model: candidate.model,
           messages: promptMessages,
           temperature: typeof effectiveTemperature === 'number' ? effectiveTemperature : 0.85,
+          max_tokens: characterSettings.maxTokens,
+          max_completion_tokens: characterSettings.maxTokens,
           top_p: 0.92,
           stream,
         }),
@@ -3439,6 +3649,144 @@ async function generateCharacterReply({ userStore, authUser = null, characterId,
   return { content, raw: json, model: usedModel, provider: usedProvider, temperature: effectiveTemperature, attemptedModels: candidateModels, character, persona };
 }
 
+
+async function pathExists(filePath) {
+  try {
+    await fsp.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function checkWritableDir(dirPath) {
+  try {
+    await fsp.mkdir(dirPath, { recursive: true });
+    const probe = path.join(dirPath, `.nexus-write-test-${process.pid}-${Date.now()}`);
+    await fsp.writeFile(probe, 'ok');
+    await fsp.unlink(probe).catch(() => {});
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function setupLevel(checks = []) {
+  if (checks.some((check) => check.level === 'error')) return 'error';
+  if (checks.some((check) => check.level === 'warn')) return 'warn';
+  return 'ok';
+}
+
+async function collectSetupStatus({ testNetwork = true } = {}) {
+  const checks = [];
+  const add = (key, ok, message, options = {}) => checks.push({
+    key,
+    ok: Boolean(ok),
+    level: options.level || (ok ? 'ok' : (options.optional ? 'info' : 'warn')),
+    optional: Boolean(options.optional),
+    message,
+    fix: ok ? '' : (options.fix || ''),
+  });
+
+  const usersFileExists = await pathExists(USERS_PATH);
+  const appConfigExists = await pathExists(APP_CONFIG_PATH);
+  const appDataWritable = await checkWritableDir(APP_DATA_DIR);
+  const audioCacheWritable = await checkWritableDir(AUDIO_CACHE_DIR);
+  const config = await loadAppConfig();
+  const users = await loadUsers();
+  const adminUsers = Object.values(users.users || {}).filter((user) => user?.role === 'admin');
+  const backendBaseUrl = String(config.endpoints?.localBaseUrl || BACKEND_BASE_URL || '').trim();
+  const defaultModel = String(config.endpoints?.mainModel || config.endpoints?.defaultModel || DEFAULT_MODEL || '').trim();
+
+  add('app-data-dir', appDataWritable, appDataWritable
+    ? `Writable app data directory found at ${APP_DATA_DIR}.`
+    : `App data directory is not writable: ${APP_DATA_DIR}.`, { level: appDataWritable ? 'ok' : 'error', fix: 'Set APP_DATA_DIR to a writable path or fix directory permissions.' });
+  add('app-config', appConfigExists, appConfigExists
+    ? 'App config file exists.'
+    : 'App config file did not exist yet; NEXUS created defaults for this run.', { level: 'ok' });
+  add('admin-user', adminUsers.length > 0, adminUsers.length > 0
+    ? `${adminUsers.length} admin account${adminUsers.length === 1 ? '' : 's'} available.`
+    : 'No admin account exists.', { level: adminUsers.length > 0 ? 'ok' : 'error', fix: 'Set DEFAULT_ADMIN_PASSWORD and restart, or repair the users.json store.' });
+  add('users-file', usersFileExists, usersFileExists
+    ? 'User store exists.'
+    : 'User store did not exist yet; NEXUS created first-run users for this run.', { level: 'ok' });
+  add('base-path', BASE_PATH.startsWith('/'), BASE_PATH.startsWith('/')
+    ? `BASE_PATH is ${BASE_PATH}.`
+    : `BASE_PATH should start with /, currently ${BASE_PATH}.`, { fix: 'Use BASE_PATH=/aichat for the default setup.' });
+  add('public-origin', /^https?:\/\//i.test(PUBLIC_APP_ORIGIN), /^https?:\/\//i.test(PUBLIC_APP_ORIGIN)
+    ? `PUBLIC_APP_ORIGIN is ${PUBLIC_APP_ORIGIN}.`
+    : `PUBLIC_APP_ORIGIN should be a full http(s) URL, currently ${PUBLIC_APP_ORIGIN}.`, { optional: true, fix: 'For local setup use PUBLIC_APP_ORIGIN=http://localhost:3000.' });
+  add('chat-backend-url', Boolean(backendBaseUrl), backendBaseUrl
+    ? `Chat backend URL is ${backendBaseUrl}.`
+    : 'Chat backend URL is missing.', { level: backendBaseUrl ? 'ok' : 'error', fix: 'Set BACKEND_BASE_URL to an OpenAI-compatible /v1 endpoint such as LM Studio or Ollama.' });
+  add('default-model', Boolean(defaultModel), defaultModel
+    ? `Default model is ${defaultModel}.`
+    : 'Default model is missing.', { level: defaultModel ? 'ok' : 'warn', fix: 'Set DEFAULT_MODEL or choose a model in admin endpoint settings.' });
+  add('tts-cache', audioCacheWritable, audioCacheWritable
+    ? 'TTS audio cache is writable.'
+    : `TTS audio cache is not writable: ${AUDIO_CACHE_DIR}.`, { optional: true, level: audioCacheWritable ? 'ok' : 'warn', fix: 'Fix APP_DATA_DIR permissions or disable voice features.' });
+
+  if (testNetwork && backendBaseUrl) {
+    try {
+      const response = await fetchBackend('/models', {}, 3000, 'local');
+      const text = await response.text();
+      let modelFound = false;
+      try {
+        const parsed = JSON.parse(text);
+        const models = Array.isArray(parsed?.data) ? parsed.data : Array.isArray(parsed?.models) ? parsed.models : [];
+        modelFound = Boolean(defaultModel && models.some((item) => String(item?.id || item?.name || item) === defaultModel));
+      } catch {}
+      add('chat-backend-reachable', response.ok, response.ok
+        ? `Chat backend responded to /models (${response.status}).`
+        : `Chat backend responded with HTTP ${response.status}.`, { level: response.ok ? 'ok' : 'error', fix: 'Start your backend or correct BACKEND_BASE_URL.' });
+      if (response.ok && defaultModel) {
+        add('default-model-listed', modelFound, modelFound
+          ? 'Default model appears in the backend model list.'
+          : 'Backend is reachable, but the default model was not found in the model list.', { level: modelFound ? 'ok' : 'warn', fix: 'Click Fetch models in endpoint settings and choose an available model.' });
+      }
+    } catch (error) {
+      add('chat-backend-reachable', false, `Could not reach chat backend: ${String(error?.message || error)}`, { level: 'error', fix: 'Start LM Studio/Ollama/provider proxy, then rerun the setup check.' });
+    }
+  }
+
+  add('fish-audio', Boolean(FISH_AUDIO_API_KEY), FISH_AUDIO_API_KEY
+    ? 'Fish Audio API key is configured. Voice is available when character voices are set.'
+    : 'Fish Audio API key is missing. Voice is optional and manual playback will be unavailable until configured.', { optional: true, level: FISH_AUDIO_API_KEY ? 'ok' : 'info', fix: 'Set FISH_AUDIO_API_KEY only if you want voice/TTS.' });
+  add('fish-default-voice', Boolean(DEFAULT_FISH_REFERENCE_ID), DEFAULT_FISH_REFERENCE_ID
+    ? `Default Fish reference ID is configured (${DEFAULT_FISH_VOICE_LABEL}).`
+    : 'No default Fish voice/reference ID is configured. Per-character voices can still be set later.', { optional: true, level: 'info' });
+  add('image-generation', Boolean(REPLICATE_API_TOKEN || process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY), (REPLICATE_API_TOKEN || process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY)
+    ? 'At least one image generation provider key is configured.'
+    : 'Image generation keys are missing. Image generation is optional.', { optional: true, level: 'info' });
+  add('openclaw-bridge', Boolean(OPENCLAW_BRIDGE_SECRET), OPENCLAW_BRIDGE_SECRET
+    ? 'OpenClaw bridge secret is configured.'
+    : 'OpenClaw bridge is not configured. This is optional unless you use OpenClaw assistant characters.', { optional: true, level: 'info' });
+
+  const level = setupLevel(checks);
+  return {
+    ok: level !== 'error',
+    level,
+    summary: level === 'error' ? 'Setup has blocking issues.' : level === 'warn' ? 'Setup works, but a few items need attention.' : 'Setup looks ready.',
+    basePath: BASE_PATH,
+    publicOrigin: PUBLIC_APP_ORIGIN,
+    appDataDir: APP_DATA_DIR,
+    backendBaseUrl,
+    defaultModel,
+    firstRun: !usersFileExists,
+    checks,
+  };
+}
+
+
+app.get(`${BASE_PATH}/api/setup/status`, async (req, res) => {
+  try {
+    const status = await collectSetupStatus({ testNetwork: req.query?.network !== '0' });
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ ok: false, level: 'error', summary: 'Setup status failed.', checks: [{ key: 'setup-status', ok: false, level: 'error', message: String(error?.message || error) }] });
+  }
+});
+
 app.post(`${BASE_PATH}/api/auth/login`, async (req, res) => {
   const username = normalizeUsername(req.body?.username || '');
   const password = String(req.body?.password || '');
@@ -3472,6 +3820,17 @@ app.get(`${BASE_PATH}/api/auth/session`, async (req, res) => {
   const user = usersFile.users?.[session.username];
   if (!user) return res.json({ authenticated: false });
   res.json({ authenticated: true, user: sanitizeUser(user) });
+});
+
+app.post(`${BASE_PATH}/api/auth/copy-session-cookie`, requireAuth, async (req, res) => {
+  const session = getAuthenticatedSession(req);
+  if (!session?.token) return res.status(401).json({ error: 'Authentication required' });
+  res.json({
+    ok: true,
+    cookieName: SESSION_COOKIE,
+    cookieValue: session.token,
+    cookie: `${SESSION_COOKIE}=${session.token}`,
+  });
 });
 
 app.get(`${BASE_PATH}/api/admin/users`, requireAuth, requireAdmin, async (_req, res) => {
@@ -3888,7 +4247,101 @@ app.post(`${BASE_PATH}/api/config/test-connection`, requireAuth, requireAdmin, a
   }
 });
 
-app.get(`${BASE_PATH}/api/fish/models`, requireAuth, async (req, res) => {
+
+app.get(`${BASE_PATH}/api/admin/nexus-api`, requireAuth, requireAdmin, async (_req, res) => {
+  const config = await loadAppConfig();
+  const nexusApi = { ...defaultAppConfig().nexusApi, ...(config.nexusApi || {}) };
+  res.json({
+    enabled: nexusApi.enabled === true,
+    allowSessionAuth: nexusApi.allowSessionAuth === true,
+    offlineMessage: String(nexusApi.offlineMessage || ''),
+    keys: (nexusApi.keys || []).map(maskNexusApiKeyRecord),
+  });
+});
+
+app.put(`${BASE_PATH}/api/admin/nexus-api/settings`, requireAuth, requireAdmin, async (req, res) => {
+  const config = await loadAppConfig();
+  const current = { ...defaultAppConfig().nexusApi, ...(config.nexusApi || {}) };
+  config.nexusApi = {
+    ...current,
+    enabled: req.body?.enabled !== undefined ? req.body.enabled === true : current.enabled,
+    allowSessionAuth: req.body?.allowSessionAuth !== undefined ? req.body.allowSessionAuth === true : current.allowSessionAuth,
+    offlineMessage: req.body?.offlineMessage !== undefined ? String(req.body.offlineMessage || '').trim() || current.offlineMessage : current.offlineMessage,
+  };
+  await saveAppConfig(config);
+  res.json({ enabled: config.nexusApi.enabled, allowSessionAuth: config.nexusApi.allowSessionAuth, offlineMessage: config.nexusApi.offlineMessage, keys: (config.nexusApi.keys || []).map(maskNexusApiKeyRecord) });
+});
+
+app.post(`${BASE_PATH}/api/admin/nexus-api/keys`, requireAuth, requireAdmin, async (req, res) => {
+  const config = await loadAppConfig();
+  const nexusApi = { ...defaultAppConfig().nexusApi, ...(config.nexusApi || {}) };
+  const secret = generateNexusApiSecret();
+  const now = new Date().toISOString();
+  const record = {
+    id: crypto.randomUUID(),
+    label: String(req.body?.label || 'New API key').trim() || 'New API key',
+    secretHash: hashNexusApiSecret(secret),
+    secretPreview: previewNexusApiSecret(secret),
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+    lastUsedAt: '',
+    lastUsedMeta: null,
+    notes: String(req.body?.notes || '').trim(),
+    createdBy: String(req.authUser?.username || '').trim(),
+    rotatedFrom: '',
+  };
+  nexusApi.keys = [record, ...(Array.isArray(nexusApi.keys) ? nexusApi.keys : [])];
+  config.nexusApi = nexusApi;
+  await saveAppConfig(config);
+  res.status(201).json({ ok: true, key: maskNexusApiKeyRecord(record), secret });
+});
+
+app.post(`${BASE_PATH}/api/admin/nexus-api/keys/:keyId/rotate`, requireAuth, requireAdmin, async (req, res) => {
+  const config = await loadAppConfig();
+  const nexusApi = { ...defaultAppConfig().nexusApi, ...(config.nexusApi || {}) };
+  const current = (nexusApi.keys || []).find((item) => item.id === String(req.params.keyId || '').trim());
+  if (!current) return res.status(404).json({ ok: false, error: 'API key not found' });
+  const secret = generateNexusApiSecret();
+  current.secretHash = hashNexusApiSecret(secret);
+  current.secretPreview = previewNexusApiSecret(secret);
+  current.status = 'active';
+  current.updatedAt = new Date().toISOString();
+  current.rotatedFrom = current.rotatedFrom || current.id;
+  if (req.body?.label !== undefined) current.label = String(req.body.label || '').trim() || current.label;
+  if (req.body?.notes !== undefined) current.notes = String(req.body.notes || '').trim();
+  config.nexusApi = nexusApi;
+  await saveAppConfig(config);
+  res.json({ ok: true, key: maskNexusApiKeyRecord(current), secret });
+});
+
+app.put(`${BASE_PATH}/api/admin/nexus-api/keys/:keyId`, requireAuth, requireAdmin, async (req, res) => {
+  const config = await loadAppConfig();
+  const nexusApi = { ...defaultAppConfig().nexusApi, ...(config.nexusApi || {}) };
+  const current = (nexusApi.keys || []).find((item) => item.id === String(req.params.keyId || '').trim());
+  if (!current) return res.status(404).json({ ok: false, error: 'API key not found' });
+  if (req.body?.label !== undefined) current.label = String(req.body.label || '').trim() || current.label;
+  if (req.body?.notes !== undefined) current.notes = String(req.body.notes || '').trim();
+  if (req.body?.status !== undefined) current.status = ['active', 'disabled', 'revoked'].includes(String(req.body.status || '').trim()) ? String(req.body.status).trim() : current.status;
+  current.updatedAt = new Date().toISOString();
+  config.nexusApi = nexusApi;
+  await saveAppConfig(config);
+  res.json({ ok: true, key: maskNexusApiKeyRecord(current) });
+});
+
+app.delete(`${BASE_PATH}/api/admin/nexus-api/keys/:keyId`, requireAuth, requireAdmin, async (req, res) => {
+  const config = await loadAppConfig();
+  const nexusApi = { ...defaultAppConfig().nexusApi, ...(config.nexusApi || {}) };
+  const keyId = String(req.params.keyId || '').trim();
+  const before = (nexusApi.keys || []).length;
+  nexusApi.keys = (nexusApi.keys || []).filter((item) => item.id !== keyId);
+  if (nexusApi.keys.length === before) return res.status(404).json({ ok: false, error: 'API key not found' });
+  config.nexusApi = nexusApi;
+  await saveAppConfig(config);
+  res.json({ ok: true, keys: nexusApi.keys.map(maskNexusApiKeyRecord) });
+});
+
+app.get(`${BASE_PATH}/api/fish/models`, async (req, res) => {
   try {
     if (!isFishConfigured()) return res.status(503).json({ error: 'Fish Audio is not configured on the server.' });
     const query = String(req.query.q || req.query.query || req.query.title || req.query.characterName || '').trim();
@@ -3933,6 +4386,7 @@ app.put(`${BASE_PATH}/api/character/:characterId/settings`, requireAuth, async (
     ...(patch.notes !== undefined ? { notes: String(patch.notes) } : {}),
     ...(patch.modelOverride !== undefined ? { modelOverride: String(patch.modelOverride || '') } : {}),
     ...(patch.temperature !== undefined ? { temperature: Number.isFinite(Number(patch.temperature)) ? Number(patch.temperature) : current.temperature } : {}),
+    ...(patch.maxTokens !== undefined ? { maxTokens: Number.isFinite(Number(patch.maxTokens)) ? Math.max(64, Math.min(8192, Math.round(Number(patch.maxTokens)))) : current.maxTokens } : {}),
     ...(patch.background !== undefined ? { background: String(patch.background || '') } : {}),
     ...(patch.backgroundSearch !== undefined ? { backgroundSearch: String(patch.backgroundSearch || '') } : {}),
     ...(patch.autoplayVoice !== undefined ? { autoplayVoice: Boolean(patch.autoplayVoice) } : {}),
@@ -4569,11 +5023,11 @@ app.put(`${BASE_PATH}/api/personas/:personaId`, requireAuth, async (req, res) =>
   res.json({ ok: true, persona: updated });
 });
 
-app.get(`${BASE_PATH}/api/nexus/health`, requireAuth, async (_req, res) => {
-  res.json({ ok: true, service: 'nexus-api', backendReachable: true });
+app.get(`${BASE_PATH}/api/nexus/health`, requireNexusApiAccess, async (req, res) => {
+  res.json({ ok: true, service: 'nexus-api', backendReachable: true, authMode: req.nexusAuthMode || 'session' });
 });
 
-app.get(`${BASE_PATH}/api/nexus/characters`, requireAuth, async (_req, res) => {
+app.get(`${BASE_PATH}/api/nexus/characters`, requireNexusApiAccess, async (_req, res) => {
   const characters = listCharacters().map((character) => ({
     id: character.id,
     name: character.name,
@@ -4585,7 +5039,7 @@ app.get(`${BASE_PATH}/api/nexus/characters`, requireAuth, async (_req, res) => {
   res.json({ ok: true, characters });
 });
 
-app.post(`${BASE_PATH}/api/nexus/histories`, requireAuth, async (req, res) => {
+app.post(`${BASE_PATH}/api/nexus/histories`, requireNexusApiAccess, async (req, res) => {
   const characterId = String(req.body?.characterId || '').trim();
   const personaId = String(req.body?.personaId || '').trim();
   const name = String(req.body?.name || '').trim();
@@ -4607,7 +5061,7 @@ app.post(`${BASE_PATH}/api/nexus/histories`, requireAuth, async (req, res) => {
   res.status(201).json({ ok: true, ...serializeNexusHistory(conversation, characterId, personaId) });
 });
 
-app.get(`${BASE_PATH}/api/nexus/histories/:historyId`, requireAuth, async (req, res) => {
+app.get(`${BASE_PATH}/api/nexus/histories/:historyId`, requireNexusApiAccess, async (req, res) => {
   const characterId = String(req.query.characterId || '').trim();
   const personaId = String(req.query.personaId || '').trim();
   const store = await loadStore();
@@ -4617,7 +5071,7 @@ app.get(`${BASE_PATH}/api/nexus/histories/:historyId`, requireAuth, async (req, 
   res.json({ ok: true, history: serializeNexusHistory(entry.conversation, entry.characterId, entry.personaId) });
 });
 
-app.post(`${BASE_PATH}/api/nexus/chat`, requireAuth, async (req, res) => {
+app.post(`${BASE_PATH}/api/nexus/chat`, requireNexusApiAccess, async (req, res) => {
   try {
     const characterId = String(req.body?.characterId || '').trim();
     const personaId = String(req.body?.personaId || '').trim();
@@ -4772,7 +5226,94 @@ app.post(`${BASE_PATH}/api/nexus/chat`, requireAuth, async (req, res) => {
   }
 });
 
-app.post(`${BASE_PATH}/api/tts/tag`, requireAuth, async (req, res) => {
+function guessAudioContentType(filename = 'audio.webm') {
+  const lower = String(filename || '').trim().toLowerCase();
+  if (lower.endsWith('.wav')) return 'audio/wav';
+  if (lower.endsWith('.mp3')) return 'audio/mpeg';
+  if (lower.endsWith('.m4a')) return 'audio/mp4';
+  if (lower.endsWith('.ogg') || lower.endsWith('.oga')) return 'audio/ogg';
+  if (lower.endsWith('.opus')) return 'audio/ogg';
+  if (lower.endsWith('.webm')) return 'audio/webm';
+  if (lower.endsWith('.mp4')) return 'audio/mp4';
+  return 'application/octet-stream';
+}
+
+async function transcribeWithFish(audioBuffer, filename = 'audio.webm', apiKey = '', language = '') {
+  const key = String(apiKey || FISH_AUDIO_API_KEY || '').trim();
+  if (!key) throw Object.assign(new Error('Fish Audio API key is required'), { statusCode: 400 });
+  const fishAudio = new FishAudioClient({ apiKey: key, baseUrl: FISH_AUDIO_BASE_URL });
+  const request = {
+    audio: new File([audioBuffer], String(filename || 'audio.webm'), { type: guessAudioContentType(filename) }),
+  };
+  const sttLanguage = String(language || '').trim();
+  if (sttLanguage && sttLanguage !== 'auto' && sttLanguage !== 'universal') request.language = sttLanguage;
+  const result = await fishAudio.speechToText.convert(request);
+  return String(result?.text || '').trim();
+}
+
+async function transcribeWithOpenAi(audioBuffer, filename = 'audio.webm', apiKey = '', language = '') {
+  const key = String(apiKey || '').trim();
+  if (!key) throw Object.assign(new Error('OpenAI API key is required'), { statusCode: 400 });
+  const form = new FormData();
+  form.set('model', 'whisper-1');
+  const sttLanguage = String(language || '').trim();
+  if (sttLanguage && sttLanguage !== 'auto' && sttLanguage !== 'universal') form.set('language', sttLanguage);
+  form.set('file', new Blob([audioBuffer], { type: guessAudioContentType(filename) }), String(filename || 'audio.webm'));
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}` },
+    body: form,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw Object.assign(new Error(data?.error?.message || data?.message || `OpenAI STT failed (${response.status})`), { statusCode: response.status || 502 });
+  }
+  return String(data.text || '').trim();
+}
+
+async function transcribeWithElevenLabs(audioBuffer, filename = 'audio.webm', apiKey = '', language = '') {
+  const key = String(apiKey || '').trim();
+  if (!key) throw Object.assign(new Error('ElevenLabs API key is required'), { statusCode: 400 });
+  const wavBuffer = await convertAudioBufferToWavInput(audioBuffer, filename);
+  const form = new FormData();
+  form.set('model_id', 'scribe_v1');
+  const sttLanguage = String(language || '').trim();
+  if (sttLanguage && sttLanguage !== 'auto' && sttLanguage !== 'universal') form.set('language_code', sttLanguage);
+  form.set('file', new Blob([wavBuffer], { type: 'audio/wav' }), filename.replace(/\.[^.]+$/, '') + '.wav');
+  const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+    method: 'POST',
+    headers: { 'xi-api-key': key },
+    body: form,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw Object.assign(new Error(data?.detail?.message || data?.message || `ElevenLabs STT failed (${response.status})`), { statusCode: response.status || 502 });
+  }
+  return String(data.text || '').trim();
+}
+
+app.post(`${BASE_PATH}/api/stt/transcribe`, express.raw({ type: () => true, limit: '25mb' }), async (req, res) => {
+  try {
+    const rawProvider = String(req.headers['x-stt-provider'] || req.query.provider || 'fish').trim().toLowerCase();
+    const provider = rawProvider === 'openai' || rawProvider === 'elevenlabs' ? rawProvider : 'fish';
+    const filename = String(req.headers['x-stt-filename'] || req.query.filename || 'audio.webm').trim() || 'audio.webm';
+    const language = String(req.headers['x-stt-language'] || req.query.language || '').trim();
+    const audioBuffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || '');
+    if (!audioBuffer.length) return res.status(400).json({ ok: false, error: 'Audio body is required' });
+
+    const text = provider === 'elevenlabs'
+      ? await transcribeWithElevenLabs(audioBuffer, filename, req.headers['x-elevenlabs-api-key'] || req.query.elevenlabsApiKey || '', language)
+      : provider === 'openai'
+        ? await transcribeWithOpenAi(audioBuffer, filename, req.headers['x-openai-api-key'] || req.query.openaiApiKey || '', language)
+        : await transcribeWithFish(audioBuffer, filename, req.headers['x-fish-api-key'] || req.query.fishApiKey || '', language);
+
+    res.json({ ok: true, provider, language, text });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ ok: false, error: 'STT failed', detail: String(error?.message || error) });
+  }
+});
+
+app.post(`${BASE_PATH}/api/tts/tag`, requireNexusApiAccess, async (req, res) => {
   try {
     const { text, characterId, includeAsteriskNarration } = req.body || {};
     const rawText = String(text || '').trim();
@@ -4799,7 +5340,7 @@ app.post(`${BASE_PATH}/api/tts/tag`, requireAuth, async (req, res) => {
   }
 });
 
-app.post(`${BASE_PATH}/api/tts/audio`, requireAuth, async (req, res) => {
+app.post(`${BASE_PATH}/api/tts/audio`, requireNexusApiAccess, async (req, res) => {
   try {
     if (!isFishConfigured()) return res.status(503).json({ ok: false, error: 'TTS unavailable', detail: 'Fish Audio is not configured on the server.' });
 
@@ -4861,7 +5402,7 @@ app.post(`${BASE_PATH}/api/tts`, requireAuth, async (req, res) => {
   try {
     if (!isFishConfigured()) return res.status(503).json({ error: 'TTS unavailable', detail: 'Fish Audio is not configured on the server.' });
 
-    const { characterId, text, stream } = req.body || {};
+    const { characterId, text, stream, includeAsteriskNarration } = req.body || {};
     if (!characterId) return res.status(400).json({ error: 'characterId is required' });
 
     const character = listCharacters().find((item) => item.id === characterId);
@@ -4871,7 +5412,10 @@ app.post(`${BASE_PATH}/api/tts`, requireAuth, async (req, res) => {
 
     const store = await loadStore();
     const userStore = getUserStore(store, req.authUser.username);
-    const settings = getCharacterSettings(userStore, characterId);
+    const settings = {
+      ...getCharacterSettings(userStore, characterId),
+      ...(includeAsteriskNarration !== undefined ? { ttsReadNarration: includeAsteriskNarration === true } : {}),
+    };
 
     const ttsResult = await maybeAddTtsEmotionTags({ text: rawText, character, settings });
     const ttsText = ttsResult.text;
@@ -4886,7 +5430,7 @@ app.post(`${BASE_PATH}/api/tts`, requireAuth, async (req, res) => {
       const cached = await fsp.readFile(cachePath);
       res.setHeader('Content-Type', getTtsContentType(payload.format));
       res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
-      setTaggedAudioHeaders(res, { taggedText: ttsText, tags: parseTtsEmotionTags(ttsText), spokenText: stripRpNarrationForTts(rawText, { includeAsteriskNarration: settings.ttsReadNarration === true }), mode: 'cache' });
+      setTaggedAudioHeaders(res, { taggedText: ttsText, tags: parseTtsEmotionTags(ttsText), spokenText: cleanTtsSpeechText(stripRpNarrationForTts(rawText, { includeAsteriskNarration: settings.ttsReadNarration === true })), mode: 'cache' });
       return res.send(cached);
     } catch {}
 
@@ -4909,7 +5453,7 @@ app.post(`${BASE_PATH}/api/tts`, requireAuth, async (req, res) => {
     pruneAudioCache().catch(() => {});
     res.setHeader('Content-Type', audio.contentType || getTtsContentType(payload.format));
     res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
-    setTaggedAudioHeaders(res, { taggedText: ttsText, tags: parseTtsEmotionTags(ttsText), spokenText: stripRpNarrationForTts(rawText, { includeAsteriskNarration: settings.ttsReadNarration === true }), mode: 'full' });
+    setTaggedAudioHeaders(res, { taggedText: ttsText, tags: parseTtsEmotionTags(ttsText), spokenText: cleanTtsSpeechText(stripRpNarrationForTts(rawText, { includeAsteriskNarration: settings.ttsReadNarration === true })), mode: 'full' });
     res.send(audio.buffer);
   } catch (error) {
     if (!res.headersSent) {
@@ -5107,6 +5651,8 @@ app.post(`${BASE_PATH}/api/chat`, requireAuth, async (req, res) => {
               model: candidate.model,
               messages: promptMessages,
               temperature: typeof effectiveTemperature === 'number' ? effectiveTemperature : 0.85,
+              max_tokens: characterSettings.maxTokens,
+              max_completion_tokens: characterSettings.maxTokens,
               top_p: 0.92,
               stream: true,
             }),
@@ -5134,6 +5680,8 @@ app.post(`${BASE_PATH}/api/chat`, requireAuth, async (req, res) => {
               model: candidate.model,
               messages: promptMessages,
               temperature: typeof effectiveTemperature === 'number' ? effectiveTemperature : 0.85,
+              max_tokens: characterSettings.maxTokens,
+              max_completion_tokens: characterSettings.maxTokens,
               top_p: 0.92,
               stream: false,
             }),
@@ -5200,6 +5748,8 @@ app.post(`${BASE_PATH}/api/chat`, requireAuth, async (req, res) => {
             model: candidate.model,
             messages: promptMessages,
             temperature: typeof effectiveTemperature === 'number' ? effectiveTemperature : 0.85,
+            max_tokens: characterSettings.maxTokens,
+            max_completion_tokens: characterSettings.maxTokens,
             top_p: 0.92,
             stream: false,
           }),

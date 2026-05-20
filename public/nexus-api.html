@@ -103,6 +103,12 @@
     .docs-actions a {
       text-decoration: none;
     }
+    .docs-copy-result {
+      margin-top: 10px;
+      color: #d7dae4;
+      min-height: 1.4em;
+      font-size: 0.95rem;
+    }
     .docs-note {
       border-left: 3px solid var(--accent);
       padding-left: 12px;
@@ -126,8 +132,10 @@
         <a class="mini-btn" href="/aichat/">Back to app</a>
         <a class="mini-btn secondary" href="/aichat/api/nexus/characters" target="_blank" rel="noopener noreferrer">Open characters JSON</a>
         <a class="mini-btn secondary" href="/aichat/api/nexus/health" target="_blank" rel="noopener noreferrer">Open health JSON</a>
+        <button class="mini-btn secondary" type="button" id="copy-session-cookie-btn">Copy session cookie</button>
       </div>
-      <p class="docs-note">NEXUS base path: <span class="inline-code">https://your-domain.example/aichat/api/nexus</span><br />TTS tagger endpoint: <span class="inline-code">https://your-domain.example/aichat/api/tts/tag</span><br />Tagged audio endpoint: <span class="inline-code">https://your-domain.example/aichat/api/tts/audio</span><br />Auth for v1 uses the same login session as the site. API keys are not required/enabled right now.</p>
+      <div class="docs-copy-result" id="copy-session-cookie-result"></div>
+      <p class="docs-note">NEXUS base path: <span class="inline-code">https://your-domain.example/aichat/api/nexus</span><br />TTS tagger endpoint: <span class="inline-code">https://your-domain.example/aichat/api/tts/tag</span><br />Tagged audio endpoint: <span class="inline-code">https://your-domain.example/aichat/api/tts/audio</span><br />Auth for v1 now supports either the same login session as the site or a Bearer NEXUS API key created from the admin settings panel. Admins can also disable the API globally.</p>
     </section>
 
     <section class="docs-grid">
@@ -593,5 +601,40 @@ print("Audio tagged as:", unquote(audio.headers.get("X-TTS-Tagged-Text", "")))</
       </ul>
     </section>
   </main>
+  <script>
+    (() => {
+      const copyBtn = document.getElementById('copy-session-cookie-btn');
+      const resultEl = document.getElementById('copy-session-cookie-result');
+      if (!copyBtn || !resultEl) return;
+
+      const setResult = (text, isError = false) => {
+        resultEl.textContent = text;
+        resultEl.style.color = isError ? '#ff8f8f' : '#d7dae4';
+      };
+
+      copyBtn.addEventListener('click', async () => {
+        try {
+          const res = await fetch('/aichat/api/auth/copy-session-cookie', {
+            method: 'POST',
+            credentials: 'include',
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.error || 'Authentication required');
+          }
+
+          const cookieValue = String(data.cookie || '').trim();
+          if (!cookieValue) {
+            throw new Error('No aichat_session cookie found. Make sure you are logged in on this site first.');
+          }
+
+          await navigator.clipboard.writeText(cookieValue);
+          setResult('Copied your current aichat_session cookie to the clipboard.');
+        } catch (err) {
+          setResult(err.message || 'Clipboard copy failed.', true);
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

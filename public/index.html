@@ -110,7 +110,7 @@
         <div id="install-app-hint" class="meta-line hidden">On iPhone: Share → Add to Home Screen.</div>
         <button id="ui-settings-btn" class="menu-item">UI settings</button>
         <button id="endpoint-settings-btn" class="menu-item admin-only">Model & endpoint settings</button>
-        <button id="provider-settings-btn" class="menu-item admin-only">API key settings</button>
+        <button id="provider-settings-btn" class="menu-item admin-only">Provider & NEXUS API settings</button>
         <button id="setup-status-btn" class="menu-item admin-only">Setup status</button>
         <button id="user-management-btn" class="menu-item admin-only">User management</button>
         <button id="logout-btn" class="menu-item">Log out</button>
@@ -364,7 +364,10 @@
       <h2>Model & endpoint settings</h2>
       <button id="close-endpoint-settings">Close</button>
     </div>
-    <div class="settings-grid single-column-form">
+    <div class="settings-grid single-column-form settings-shell-grid">
+      <section class="settings-section-card">
+        <div class="eyebrow">Local backend</div>
+        <div class="meta-line">Set where NEXUS talks for the primary local/OpenAI-compatible backend.</div>
       <label class="field"><span>Saved local profiles</span><textarea id="endpoint-local-profiles" rows="4" placeholder="Studio|http://127.0.0.1:1234/v1
 Ollama|http://127.0.0.1:11434/v1"></textarea></label>
       <label class="field"><span>Active local profile</span><select id="endpoint-active-local-profile"></select></label>
@@ -372,6 +375,10 @@ Ollama|http://127.0.0.1:11434/v1"></textarea></label>
       <label class="field"><span>Provider label</span><input id="endpoint-provider-label" placeholder="llm" /></label>
       <label class="field"><span>Default model</span><input id="endpoint-default-model" placeholder="mistralai/mistral-nemo-instruct-2407" /></label>
       <label class="field"><span>Main (local) model</span><select id="endpoint-main-model"></select></label>
+      </section>
+      <section class="settings-section-card">
+        <div class="eyebrow">Fallback routing</div>
+        <div class="meta-line">If the primary route fails, these kick in. Advanced overrides stay tucked away unless you need them.</div>
       <label class="field"><span>Fallback 1 provider</span><select id="endpoint-fallback-provider-1"><option value="local">Local</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="xai">xAI</option></select></label>
       <label class="field"><span>Fallback 1 model</span><select id="endpoint-fallback-model-1"></select></label>
       <label class="field fallback-key-row" id="endpoint-fallback-key-row-1"><span>Fallback 1 API key</span><input id="endpoint-fallback-key-1" type="password" placeholder="Leave blank to keep current key" /></label>
@@ -392,12 +399,17 @@ Ollama|http://127.0.0.1:11434/v1"></textarea></label>
         <label class="field"><span>Explicit model name</span><input id="endpoint-fallback-override-model-2" placeholder="openai/gpt-4.1-mini" /></label>
         <label class="field"><span>Explicit API key</span><input id="endpoint-fallback-override-key-2" type="password" placeholder="Optional direct override key" /></label>
       </details>
-      <label class="field"><span>Request timeout (ms)</span><input id="endpoint-request-timeout" type="number" min="1000" step="1000" /></label>
+      </section>
+      <section class="settings-section-card">
+        <div class="eyebrow">Advanced</div>
+        <label class="field"><span>Request timeout (ms)</span><input id="endpoint-request-timeout" type="number" min="1000" step="1000" /></label>
       <div class="dialog-actions split-actions">
         <button type="button" id="test-endpoint-btn" class="secondary">Test connection</button>
         <button type="button" id="save-endpoint-settings">Save endpoint settings</button>
       </div>
+      <div id="endpoint-route-summary" class="info-card compact"></div>
       <div id="endpoint-test-result" class="meta-line"></div>
+    </section>
     </div>
   </dialog>
 
@@ -419,19 +431,45 @@ Ollama|http://127.0.0.1:11434/v1"></textarea></label>
 
   <dialog id="provider-settings-dialog">
     <div class="settings-header">
-      <h2>API key settings</h2>
+      <h2>Provider & NEXUS API settings</h2>
       <button id="close-provider-settings">Close</button>
     </div>
-    <div class="settings-grid single-column-form provider-settings-grid">
-      <label class="field"><span>OpenAI API key</span><input id="provider-openai-key" type="password" placeholder="sk-..." /></label>
-      <label class="field"><span>OpenRouter API key</span><input id="provider-openrouter-key" type="password" placeholder="or-..." /></label>
-      <label class="field"><span>Anthropic API key</span><input id="provider-anthropic-key" type="password" placeholder="sk-ant-..." /></label>
-      <label class="field"><span>Gemini API key</span><input id="provider-gemini-key" type="password" placeholder="AIza..." /></label>
-      <label class="field"><span>xAI API key</span><input id="provider-xai-key" type="password" placeholder="xai-..." /></label>
-      <div class="dialog-actions">
-        <button type="button" id="save-provider-settings">Save API key settings</button>
-      </div>
-      <div class="meta-line">Global, admin-only, stored server-side.</div>
+    <div class="settings-grid single-column-form provider-settings-grid settings-shell-grid">
+      <section class="settings-section-card">
+        <div class="eyebrow">Provider keys</div>
+        <label class="field"><span>OpenAI API key</span><input id="provider-openai-key" type="password" placeholder="sk-..." /></label>
+        <label class="field"><span>OpenRouter API key</span><input id="provider-openrouter-key" type="password" placeholder="or-..." /></label>
+        <label class="field"><span>Anthropic API key</span><input id="provider-anthropic-key" type="password" placeholder="sk-ant-..." /></label>
+        <label class="field"><span>Gemini API key</span><input id="provider-gemini-key" type="password" placeholder="AIza..." /></label>
+        <label class="field"><span>xAI API key</span><input id="provider-xai-key" type="password" placeholder="xai-..." /></label>
+        <div class="dialog-actions">
+          <button type="button" id="save-provider-settings">Save provider keys</button>
+        </div>
+        <div class="meta-line">Global, admin-only, stored server-side.</div>
+      </section>
+      <section class="settings-section-card">
+        <div class="eyebrow">NEXUS API controls</div>
+        <label class="field"><span>NEXUS API</span><select id="nexus-api-enabled"><option value="on">Enabled</option><option value="off">Disabled</option></select></label>
+        <label class="field"><span>Allow browser session auth</span><select id="nexus-api-allow-session"><option value="on">On</option><option value="off">Off</option></select></label>
+        <label class="field"><span>Disabled message</span><input id="nexus-api-offline-message" placeholder="NEXUS API is currently disabled by the admin." /></label>
+        <div class="dialog-actions">
+          <button type="button" id="save-nexus-api-settings" class="secondary">Save NEXUS API settings</button>
+        </div>
+        <div class="meta-line">Bearer API keys work even when session auth is turned off.</div>
+      </section>
+      <section class="settings-section-card">
+        <div class="eyebrow">Create API key</div>
+        <label class="field"><span>Label</span><input id="nexus-api-new-key-label" placeholder="Production integration" /></label>
+        <label class="field"><span>Notes</span><textarea id="nexus-api-new-key-notes" rows="3" placeholder="What this key is for"></textarea></label>
+        <div class="dialog-actions">
+          <button type="button" id="create-nexus-api-key">Create API key</button>
+        </div>
+        <div id="nexus-api-new-key-result" class="meta-line"></div>
+      </section>
+      <section class="settings-section-card">
+        <div class="eyebrow">Existing API keys</div>
+        <div id="nexus-api-key-list" class="user-list"></div>
+      </section>
     </div>
   </dialog>
 

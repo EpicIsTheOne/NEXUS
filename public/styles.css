@@ -5910,3 +5910,163 @@ html {
     overflow-x: hidden !important;
   }
 }
+
+/* Setup status / first-run doctor */
+.setup-status-summary {
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text, #f4f4f7);
+  font-weight: 700;
+}
+.setup-status-summary.ok { border-color: rgba(80, 255, 160, 0.35); }
+.setup-status-summary.warn { border-color: rgba(255, 212, 121, 0.45); }
+.setup-status-summary.error { border-color: rgba(255, 100, 120, 0.5); }
+.setup-status-list {
+  display: grid;
+  gap: 10px;
+}
+.setup-check {
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(8, 10, 18, 0.64);
+}
+.setup-check.ok { border-color: rgba(80, 255, 160, 0.22); }
+.setup-check.warn { border-color: rgba(255, 212, 121, 0.32); }
+.setup-check.error { border-color: rgba(255, 100, 120, 0.42); }
+.setup-check.info { border-color: rgba(140, 180, 255, 0.24); }
+.setup-check-main {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  line-height: 1.35;
+}
+.setup-check-icon { flex: 0 0 auto; }
+.setup-check-fix {
+  margin: 7px 0 0 27px;
+  color: var(--muted, #a6adc8);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+
+/* Settings UX cleanup: clear sectioning for admin dialogs. */
+.settings-shell-grid {
+  gap: 16px;
+}
+
+.settings-section-card {
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.03);
+  display: grid;
+  gap: 12px;
+}
+
+.settings-section-card .eyebrow {
+  margin-bottom: -4px;
+}
+
+.nexus-api-key-row {
+  align-items: start;
+  gap: 14px;
+}
+
+#endpoint-route-summary.compact {
+  padding: 12px 14px;
+}
+
+/* Final mobile right-sizing pass: keep it comfortable, stop the giant-ui nonsense. */
+@media (max-width: 980px) {
+  body {
+    font-size: calc(15px * var(--font-scale)) !important;
+  }
+
+  .floating-profile-wrap {
+    height: calc(84px + env(safe-area-inset-top)) !important;
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px !important;
+    grid-template-columns: 56px minmax(0, 1fr) 44px 44px !important;
+    gap: 8px !important;
+  }
+
+  .floating-title {
+    font-size: 1.02rem !important;
+    gap: 10px !important;
+  }
+
+  .message-name {
+    font-size: 0.74rem !important;
+  }
+
+  .message {
+    padding: 10px 12px !important;
+    font-size: 0.82rem !important;
+    line-height: 1.34 !important;
+  }
+
+  .composer {
+    grid-template-columns: 50px 1fr 52px !important;
+    gap: 9px !important;
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .composer textarea {
+    min-height: 48px !important;
+    max-height: 124px !important;
+    padding: 12px 13px !important;
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+    border-radius: 16px !important;
+  }
+
+  .composer textarea::placeholder {
+    font-size: 16px !important;
+  }
+
+  .composer #new-chat,
+  .composer .image-upload-button,
+  .composer #send-btn {
+    height: 48px !important;
+    min-height: 48px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .composer #new-chat,
+  .composer #send-btn {
+    width: 50px !important;
+    min-width: 50px !important;
+  }
+
+  .composer #new-chat::after {
+    font-size: 1.45rem !important;
+  }
+
+  .composer #image-btn-label::after {
+    font-size: 0.9rem !important;
+  }
+
+  .composer #send-btn::after {
+    font-size: 1.25rem !important;
+  }
+
+  body.keyboard-open .composer {
+    grid-template-columns: minmax(0, 1fr) 52px !important;
+  }
+
+  body.keyboard-open .composer textarea {
+    min-height: 46px !important;
+    max-height: 110px !important;
+  }
+
+  .chat-view {
+    padding-bottom: calc(156px + env(safe-area-inset-bottom)) !important;
+    scroll-padding-bottom: calc(156px + env(safe-area-inset-bottom)) !important;
+  }
+
+  dialog {
+    padding: 16px !important;
+  }
+}
