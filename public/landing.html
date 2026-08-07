@@ -65,6 +65,20 @@
       margin-top: 16px; color: var(--dim); font-size: 0.72rem; letter-spacing: 0.06em;
       text-align: center;
     }
+    .landing-foot a { color: var(--accent); text-decoration: none; }
+    .landing-foot a:hover { text-decoration: underline; }
+    .auth-tabs {
+      display: flex; gap: 0; margin-bottom: 18px; border: 1px solid var(--border);
+    }
+    .auth-tab {
+      flex: 1; background: transparent; color: var(--muted); border: 0;
+      padding: 10px 0; font: inherit; letter-spacing: 0.08em; text-transform: uppercase;
+      font-size: 0.78rem; cursor: pointer; border-right: 1px solid var(--border);
+    }
+    .auth-tab:last-child { border-right: 0; }
+    .auth-tab.is-active { color: var(--fg); background: rgba(139, 92, 246, 0.10); }
+    .auth-tab:hover { color: var(--fg); }
+    .field .opt { color: var(--dim); text-transform: none; letter-spacing: 0; font-size: 0.7rem; }
     @media (max-width: 760px) {
       .landing-wrap { grid-template-columns: 1fr; }
       .landing-rail { display: none; }
@@ -101,6 +115,11 @@
         <h1>ＮＥＸＵＳ</h1>
         <p class="landing-tagline">Log in before touching characters, history, or anything fun. <b>Immersive roleplay</b> on your own hardware.</p>
 
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab is-active" id="tab-login" role="tab" aria-selected="true">Log in</button>
+          <button type="button" class="auth-tab" id="tab-signup" role="tab" aria-selected="false">Sign up</button>
+        </div>
+
         <form id="login-form" class="settings-grid single-column-form auth-form" autocomplete="on">
           <label class="field"><span>Username</span><input id="login-username" name="username" autocomplete="username" required placeholder="Epic" /></label>
           <label class="field"><span>Password</span><input id="login-password" name="current-password" type="password" autocomplete="current-password" required placeholder="••••••••" /></label>
@@ -110,41 +129,71 @@
           </div>
         </form>
 
-        <div class="landing-foot">No account? Ask the admin to spin one up.</div>
+        <form id="signup-form" class="settings-grid single-column-form auth-form hidden" autocomplete="on">
+          <label class="field"><span>Username</span><input id="signup-username" name="username" autocomplete="username" required placeholder="3+ chars: letters, numbers, _ . -" /></label>
+          <label class="field"><span>Display name <span class="opt">(optional)</span></span><input id="signup-display" name="displayName" autocomplete="name" placeholder="How you'll appear" /></label>
+          <label class="field"><span>Password</span><input id="signup-password" name="new-password" type="password" autocomplete="new-password" required placeholder="At least 4 characters" /></label>
+          <div id="signup-error" class="meta-line hidden"></div>
+          <div class="dialog-actions split-actions auth-actions">
+            <button type="submit" id="signup-submit">Create account</button>
+          </div>
+        </form>
+
+        <div class="landing-foot">No account? <a href="#" id="switch-to-signup">Sign up</a> — it's open.</div>
       </div>
     </main>
   </div>
 
   <script>
-    // Reuse the app's real login flow so the button actually works.
     (function () {
-      var form = document.getElementById('login-form');
-      var errEl = document.getElementById('login-error');
-      if (!form) return;
-      form.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        errEl.classList.add('hidden');
-        var username = document.getElementById('login-username').value.trim();
-        var password = document.getElementById('login-password').value;
-        try {
-          var res = await fetch('./api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ username: username, password: password })
-          });
-          var data = await res.json().catch(function () { return {}; });
-          if (!res.ok || !data.ok) {
-            errEl.textContent = (data && data.error) ? data.error : 'Login failed.';
+      var loginForm = document.getElementById('login-form');
+      var signupForm = document.getElementById('signup-form');
+      var tabLogin = document.getElementById('tab-login');
+      var tabSignup = document.getElementById('tab-signup');
+      var switchLink = document.getElementById('switch-to-signup');
+
+      function showMode(mode) {
+        var isLogin = mode === 'login';
+        loginForm.classList.toggle('hidden', !isLogin);
+        signupForm.classList.toggle('hidden', isLogin);
+        tabLogin.classList.toggle('is-active', isLogin);
+        tabSignup.classList.toggle('is-active', !isLogin);
+        tabLogin.setAttribute('aria-selected', String(isLogin));
+        tabSignup.setAttribute('aria-selected', String(!isLogin));
+      }
+      tabLogin.addEventListener('click', function () { showMode('login'); });
+      tabSignup.addEventListener('click', function () { showMode('signup'); });
+      if (switchLink) switchLink.addEventListener('click', function (e) { e.preventDefault(); showMode('signup'); });
+
+      function handle(form, url, errId, btnId) {
+        var errEl = document.getElementById(errId);
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          errEl.classList.add('hidden');
+          var payload = {};
+          new FormData(form).forEach(function (v, k) { payload[k] = v; });
+          try {
+            var res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify(payload)
+            });
+            var data = await res.json().catch(function () { return {}; });
+            if (!res.ok || !data.ok) {
+              errEl.textContent = (data && data.error) ? data.error : 'Request failed.';
+              errEl.classList.remove('hidden');
+              return;
+            }
+            window.location.replace('./chat');
+          } catch (err) {
+            errEl.textContent = 'Network error — try again.';
             errEl.classList.remove('hidden');
-            return;
           }
-          window.location.replace('./chat');
-        } catch (err) {
-          errEl.textContent = 'Network error — try again.';
-          errEl.classList.remove('hidden');
-        }
-      });
+        });
+      }
+      handle(loginForm, './api/auth/login', 'login-error', 'login-submit');
+      handle(signupForm, './api/auth/register', 'signup-error', 'signup-submit');
 
       // Already-authed visitors skip the landing and go straight to the app.
       fetch('./api/auth/session', { credentials: 'same-origin' })

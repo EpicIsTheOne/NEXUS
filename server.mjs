@@ -3866,6 +3866,40 @@ app.post(`${BASE_PATH}/api/auth/login`, async (req, res) => {
   res.json({ ok: true, user: sanitizeUser(user) });
 });
 
+// Public self-signup. Creates a regular (role: 'user') account using the same
+// scheme as the admin user-create endpoint. No auth required.
+app.post(`${BASE_PATH}/api/auth/register`, async (req, res) => {
+  const username = normalizeUsername(req.body?.username || '');
+  const password = String(req.body?.password || '');
+  const displayName = String(req.body?.displayName || '').trim();
+  if (!username) return res.status(400).json({ error: 'Username is required' });
+  if (!/^[a-z0-9_.-]{3,}$/.test(username)) return res.status(400).json({ error: 'Username must be 3+ chars: letters, numbers, _ . - only' });
+  if (!password || password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
+
+  const usersFile = await loadUsers();
+  if (usersFile.users[username]) return res.status(409).json({ error: 'User already exists' });
+
+  usersFile.users[username] = {
+    username,
+    displayName: displayName || titleizeUsername(username),
+    role: 'user',
+    ...makePasswordRecord(password),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  await saveUsers(usersFile);
+
+  const store = await loadStore();
+  getUserStore(store, username);
+  await saveStore(store);
+
+  const token = crypto.randomBytes(32).toString('hex');
+  sessions.set(token, { username, expiresAt: Date.now() + SESSION_MAX_AGE_MS });
+  persistSessionsToDisk();
+  setSessionCookie(req, res, token);
+  res.status(201).json({ ok: true, user: sanitizeUser(usersFile.users[username]) });
+});
+
 app.post(`${BASE_PATH}/api/auth/logout`, async (req, res) => {
   const session = getAuthenticatedSession(req);
   if (session?.token) {
