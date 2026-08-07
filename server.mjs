@@ -165,7 +165,7 @@ function defaultUsers() {
         username: 'indo',
         displayName: 'Indo',
         role: 'admin',
-        ...makePasswordRecord('Indorex'),
+        ...makePasswordRecord(process.env.INDO_ADMIN_PASSWORD || crypto.randomBytes(18).toString('base64url')),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },
