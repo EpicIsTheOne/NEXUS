@@ -2,14 +2,14 @@
   "name": "NEXUS",
   "short_name": "NEXUS",
   "description": "Character-first AI chat with persistent memory.",
-  "start_url": "/aichat/",
-  "scope": "/aichat/",
+  "start_url": "/nexus/",
+  "scope": "/nexus/",
   "display": "standalone",
   "background_color": "#0b0d13",
   "theme_color": "#0b0d13",
   "icons": [
     {
-      "src": "/aichat/icon.svg",
+      "src": "/nexus/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
