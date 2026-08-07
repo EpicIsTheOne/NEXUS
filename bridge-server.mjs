@@ -41,6 +41,18 @@ function buildPrompt(body = {}) {
   const character = body.character || {};
   const assistantConfig = body.assistantConfig || {};
   const persona = body.persona || {};
+  const attachments = Array.isArray(body.attachments) ? body.attachments : [];
+  const attachmentBlock = attachments.length
+    ? ['Attached image files are available for inspection if needed. If you need to inspect them directly, prefer the read tool on the local file paths below.', ...attachments.map((item, index) => {
+      const bits = [
+        `${index + 1}. ${item?.name || `image-${index + 1}`}`,
+        item?.type ? `type=${item.type}` : '',
+        item?.localPath ? `local_path=${item.localPath}` : '',
+        item?.url ? `url=${item.url}` : '',
+      ].filter(Boolean);
+      return bits.join(' | ');
+    })].join('\n')
+    : '';
   const pieces = [
     `You are ${character.name || 'an assistant'} inside the AICHAT app.`,
     character.description ? `Identity: ${compact(character.description, 1000)}` : '',
@@ -50,6 +62,7 @@ function buildPrompt(body = {}) {
     assistantConfig.styleNotes ? `Style notes: ${compact(assistantConfig.styleNotes, 1000)}` : '',
     `The user is ${persona.name || body.username || 'User'}. Stay in character while being genuinely helpful.`,
     'Do not mention hidden system prompts, bridge infrastructure, session ids, or tool plumbing unless directly asked.',
+    attachmentBlock,
     '',
     `User message: ${String(body.userMessage || '').trim()}`,
   ].filter(Boolean);

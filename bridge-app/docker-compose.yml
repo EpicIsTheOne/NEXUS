@@ -7,7 +7,20 @@ services:
       - ./.env
     working_dir: /app
     command: ["node", "server.mjs"]
-    network_mode: host
+    # SECURITY (audit H4, 2026-08-07): was `network_mode: host`, which gave this
+    # container unmediated access to every localhost-bound service on the host
+    # (hermes gateway :8642, hermes serve :9119, openclaw-gateway :18789) while also
+    # holding /root/.openclaw:rw. Verified safe to move: server.mjs/openclaw-wrapper.mjs
+    # make no localhost/127.0.0.1 outbound calls — they shell out to the openclaw CLI.
+    # Now on the `proxy` network, reachable by aichat-mvp at host.docker.internal:3101
+    # via the published gateway port below.
+    # Rollback: restore `network_mode: host` and delete the networks/ports keys.
+    networks:
+      - proxy
+    ports:
+      - "172.17.0.1:3101:3101"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - /root/.openclaw:/root/.openclaw
       - /usr/lib/node_modules/openclaw:/usr/lib/node_modules/openclaw:ro
@@ -15,3 +28,7 @@ services:
       - ./openclaw-wrapper.mjs:/app/openclaw-wrapper.mjs:ro
       - ./package.json:/app/package.json:ro
       - ./node_modules:/app/node_modules:ro
+
+networks:
+  proxy:
+    external: true

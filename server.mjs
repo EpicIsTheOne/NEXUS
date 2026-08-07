@@ -2404,7 +2404,25 @@ function buildAssistantBridgePrompt({ character = null, persona = null, authUser
   return pieces.join('\n');
 }
 
-async function runOpenClawAssistantTurn({ sessionKey, character, persona, authUser, userMessage, thinking = 'low' } = {}) {
+function buildAssistantBridgeAttachments(message = null) {
+  const normalized = normalizeStoredMessage(message);
+  const images = Array.isArray(normalized.images) ? normalized.images : [];
+  return images.map((image, index) => {
+    const url = String(image?.url || '').trim();
+    const name = String(image?.name || '').trim() || `image-${index + 1}`;
+    const type = String(image?.type || '').trim() || 'image/*';
+    let localPath = '';
+    const marker = `${BASE_PATH}/assets/message-images/`;
+    const markerIndex = url.indexOf(marker);
+    if (markerIndex >= 0) {
+      const encoded = url.slice(markerIndex + marker.length).split('?')[0].split('#')[0];
+      if (encoded) localPath = path.join(MESSAGE_IMAGE_DIR, decodeURIComponent(encoded));
+    }
+    return { name, type, url, localPath };
+  }).filter((item) => item.url || item.localPath);
+}
+
+async function runOpenClawAssistantTurn({ sessionKey, character, persona, authUser, userMessage, attachments = [], thinking = 'low' } = {}) {
   if (!OPENCLAW_BRIDGE_SECRET) {
     const configError = new Error('OpenClaw bridge secret is not configured');
     configError.detail = 'Set OPENCLAW_BRIDGE_SECRET for the AICHAT server.';
