@@ -30,7 +30,7 @@ loadDotEnvFile();
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const BASE_PATH = process.env.BASE_PATH || '/aichat';
+const BASE_PATH = process.env.BASE_PATH || '/nexus';
 const BACKEND_BASE_URL = (process.env.BACKEND_BASE_URL || '').replace(/\/$/, '');
 const DEFAULT_MODEL = process.env.DEFAULT_MODEL || 'mistralai/mistral-nemo-instruct-2407';
 const DEFAULT_PROVIDER_LABEL = process.env.DEFAULT_PROVIDER_LABEL || 'llm';
@@ -723,7 +723,7 @@ async function fetchBackend(pathname, options = {}, timeoutMs = 6000, provider =
       headers: {
         'Content-Type': 'application/json',
         ...(runtime.apiKey ? { Authorization: `Bearer ${runtime.apiKey}` } : {}),
-        ...(provider === 'openrouter' && runtime.apiKey ? { 'HTTP-Referer': 'https://your-domain.example/aichat', 'X-Title': 'AIChat' } : {}),
+        ...(provider === 'openrouter' && runtime.apiKey ? { 'HTTP-Referer': 'https://your-domain.example/nexus', 'X-Title': 'NEXUS' } : {}),
         ...(options.headers || {}),
       },
     });
@@ -1412,7 +1412,7 @@ async function saveMessageImageAsset(dataUrl, req, baseName = 'upload-' + Date.n
 
 async function saveRemoteImageAsset(imageUrl, req, baseName = 'replicate-' + Date.now() + '-' + crypto.randomUUID()) {
   if (!imageUrl) return '';
-  const response = await fetch(String(imageUrl), { headers: { 'User-Agent': 'Mozilla/5.0 AIChatReplicate/1.0' } });
+  const response = await fetch(String(imageUrl), { headers: { 'User-Agent': 'Mozilla/5.0 NEXUSReplicate/1.0' } });
   if (!response.ok) throw new Error(`Could not fetch generated image (${response.status})`);
   const contentType = String(response.headers.get('content-type') || 'image/png').toLowerCase();
   const ext = contentType.includes('webp') ? 'webp' : contentType.includes('jpeg') ? 'jpg' : 'png';
@@ -1712,8 +1712,8 @@ async function createOpenRouterImageEdit({ prompt, imageBuffer, imageMimeType, a
     headers: {
       'Authorization': `Bearer ${runtime.apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://your-domain.example/aichat',
-      'X-Title': 'AIChat',
+      'HTTP-Referer': 'https://your-domain.example/nexus',
+      'X-Title': 'NEXUS',
     },
     body: JSON.stringify({
       model: String(imageModel || runtime.model).replace(/^openrouter\//, ''),
@@ -2030,7 +2030,7 @@ function likelyDuplicateCharacterName(name = '', existingCanonicalNames = new Se
 
 async function fetchImageAsDataUrl(url) {
   if (!url) return '';
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 AIChatAcquirer/1.0' } });
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 NEXUSAcquirer/1.0' } });
   if (!res.ok) return '';
   const type = res.headers.get('content-type') || 'image/webp';
   const buffer = Buffer.from(await res.arrayBuffer());
@@ -2209,7 +2209,7 @@ async function acquireChubBatch({ requestedBy = 'system', batchSize = 6, scoreTh
       require_lore_linked: 'false', sort: 'default', min_tags: '2', topics: '', inclusive_or: 'false', recommended_verified: 'false',
       require_alternate_greetings: 'false', count: 'false',
     });
-    const response = await fetch(`https://gateway.chub.ai/search?${params.toString()}`, { headers: { 'User-Agent': 'Mozilla/5.0 AIChatAcquirer/1.0' } });
+    const response = await fetch(`https://gateway.chub.ai/search?${params.toString()}`, { headers: { 'User-Agent': 'Mozilla/5.0 NEXUSAcquirer/1.0' } });
     if (!response.ok) continue;
     const json = await response.json().catch(() => ({}));
     const nodes = Array.isArray(json?.nodes) ? json.nodes : Array.isArray(json?.data?.nodes) ? json.data.nodes : [];
@@ -2228,7 +2228,7 @@ async function acquireChubBatch({ requestedBy = 'system', batchSize = 6, scoreTh
     if (acquisitionRun.accepted.length >= batchSize) break;
     const entry = { startedAt: new Date().toISOString(), query: result.query, source: result.href, success: false };
     try {
-      const response = await fetch(`https://gateway.chub.ai/api/characters/${result.fullPath}?full=true&nocache=${Math.random()}`, { headers: { 'User-Agent': 'Mozilla/5.0 AIChatAcquirer/1.0' } });
+      const response = await fetch(`https://gateway.chub.ai/api/characters/${result.fullPath}?full=true&nocache=${Math.random()}`, { headers: { 'User-Agent': 'Mozilla/5.0 NEXUSAcquirer/1.0' } });
       if (!response.ok) throw new Error(`Chub gateway failed (${response.status})`);
       const payload = await response.json();
       const card = normalizeChubCharacter(payload, result.href);
@@ -3765,7 +3765,7 @@ async function collectSetupStatus({ testNetwork = true } = {}) {
     : 'User store did not exist yet; NEXUS created first-run users for this run.', { level: 'ok' });
   add('base-path', BASE_PATH.startsWith('/'), BASE_PATH.startsWith('/')
     ? `BASE_PATH is ${BASE_PATH}.`
-    : `BASE_PATH should start with /, currently ${BASE_PATH}.`, { fix: 'Use BASE_PATH=/aichat for the default setup.' });
+    : `BASE_PATH should start with /, currently ${BASE_PATH}.`, { fix: 'Use BASE_PATH=/nexus for the default setup.' });
   add('public-origin', /^https?:\/\//i.test(PUBLIC_APP_ORIGIN), /^https?:\/\//i.test(PUBLIC_APP_ORIGIN)
     ? `PUBLIC_APP_ORIGIN is ${PUBLIC_APP_ORIGIN}.`
     : `PUBLIC_APP_ORIGIN should be a full http(s) URL, currently ${PUBLIC_APP_ORIGIN}.`, { optional: true, fix: 'For local setup use PUBLIC_APP_ORIGIN=http://localhost:3000.' });
@@ -5898,6 +5898,25 @@ app.get(`${BASE_PATH}/public/replicate/:file`, (req, res) => {
   sendCacheableAsset(res, path.join(REPLICATE_ASSET_DIR, file));
 });
 
+// Public landing page (no auth required). Authenticated visitors are
+// redirected to the app shell by an inline script in landing.html.
+app.get(`${BASE_PATH}/`, (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(process.cwd(), 'public', 'landing.html'));
+});
+
+// Authenticated app shell at /chat (and any subpath). Anonymous visitors are
+// bounced back to the landing page; the app shell itself shows the login form
+// once loaded, so we only redirect here when there is no session at all.
+function sendAppShell(req, res) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
+}
+app.get(`${BASE_PATH}/chat`, sendAppShell);
+app.get(`${BASE_PATH}/chat/*`, sendAppShell);
+
 app.use(BASE_PATH, (_req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -5914,6 +5933,6 @@ app.get(`${BASE_PATH}*`, (_req, res) => {
 ensureStore().then(async () => {
   await pruneAudioCache().catch(() => {});
   app.listen(PORT, () => {
-    console.log(`AIChat MVP listening on ${PORT} with base path ${BASE_PATH}`);
+    console.log(`NEXUS listening on ${PORT} with base path ${BASE_PATH}`);
   });
 });

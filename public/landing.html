@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-base-path="/nexus">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b0d13" />
+  <meta name="apple-mobile-web-app-title" content="NEXUS" />
+  <title>ＮＥＸＵＳ</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css?v=user-placeholder-v62" />
+  <style>
+    .nexus-landing {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(1200px 600px at 50% -10%, rgba(34, 211, 238, 0.12), transparent 60%),
+        #0b0d13;
+    }
+    .landing-card {
+      max-width: 560px;
+      width: 100%;
+      text-align: center;
+      background: rgba(18, 22, 33, 0.9);
+      border: 1px solid rgba(34, 211, 238, 0.25);
+      border-radius: 18px;
+      padding: 40px 32px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
+    .landing-card h1 {
+      font-size: 2.6rem;
+      letter-spacing: 0.12em;
+      margin: 0 0 8px;
+      color: #e7f6ff;
+    }
+    .landing-tag {
+      color: #9fb3c8;
+      font-size: 1.05rem;
+      margin: 0 0 24px;
+    }
+    .landing-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 28px;
+      display: grid;
+      gap: 10px;
+      text-align: left;
+    }
+    .landing-features li {
+      background: rgba(34, 211, 238, 0.06);
+      border: 1px solid rgba(34, 211, 238, 0.15);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #cfe6f5;
+    }
+    .enter-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #22d3ee, #3b82f6);
+      color: #04121a;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 999px;
+      font-size: 1.05rem;
+      transition: transform 0.08s ease, filter 0.15s ease;
+    }
+    .enter-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .enter-btn:active { transform: translateY(0); }
+    .landing-foot {
+      margin-top: 18px;
+      font-size: 0.8rem;
+      color: #6b7c91;
+    }
+  </style>
+</head>
+<body class="nexus-landing">
+  <main class="landing-card">
+    <h1>ＮＥＸＵＳ</h1>
+    <p class="landing-tag">Immersive character AI — expressive conversation, lifelike voice, and your own library.</p>
+    <ul class="landing-features">
+      <li>Expressive roleplay chat with personas &amp; memory</li>
+      <li>Fish Audio TTS with emotion tagging</li>
+      <li>On-demand image generation</li>
+      <li>Scriptable NEXUS API</li>
+    </ul>
+    <a class="enter-btn" href="./chat">Enter NEXUS</a>
+    <p class="landing-foot">Self-hosted. Private. Yours.</p>
+  </main>
+  <script>
+    // Logged-in visitors should skip the landing and go straight to the app.
+    fetch('./api/auth/session', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (s) { if (s && s.authenticated) window.location.replace('./chat'); })
+      .catch(function () {});
+  </script>
+</body>
+</html>

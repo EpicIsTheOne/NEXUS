@@ -1,12 +1,12 @@
-# NEXUS / AIChat
+# NEXUS
 
 NEXUS is a self-hosted character-chat web app with a cyberpunk mobile-first UI, login-gated character library, saved histories, persona support, model routing, image generation, Fish Audio TTS, and scriptable API endpoints.
 
 The live deployment for Epic runs at:
 
-- App: `https://your-domain.example/aichat/`
-- API docs: `https://your-domain.example/aichat/nexus-api.html`
-- NEXUS API base: `https://your-domain.example/aichat/api/nexus`
+- App: `https://your-domain.example/nexus/`
+- API docs: `https://your-domain.example/nexus/nexus-api.html`
+- NEXUS API base: `https://your-domain.example/nexus/api/nexus`
 
 
 ## Documentation
@@ -157,7 +157,7 @@ Common deployment variables:
 | Variable | Purpose |
 |---|---|
 | `PORT` | Server port. Defaults to `3000`. |
-| `BASE_PATH` | Mount path. Live deployment uses `/aichat`. |
+| `BASE_PATH` | Mount path. Live deployment uses `/nexus`. |
 | `BACKEND_BASE_URL` | OpenAI-compatible chat backend URL. |
 | `DEFAULT_MODEL` | Default chat model. |
 | `DEFAULT_PROVIDER_LABEL` | Human label for the default provider. |
@@ -191,7 +191,7 @@ npm start
 Then open:
 
 ```text
-http://localhost:3000/aichat/
+http://localhost:3000/nexus/
 ```
 
 The setup doctor checks Node, writable data paths, backend reachability, optional Fish Audio, optional image providers, and optional OpenClaw bridge wiring before you waste time in the browser.

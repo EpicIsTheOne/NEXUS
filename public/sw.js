@@ -1,15 +1,21 @@
-const CACHE_NAME = 'nexus-shell-user-placeholder-v52';
+const CACHE_NAME = 'nexus-shell-user-placeholder-v53';
 const IMAGE_CACHE_NAME = 'nexus-images-avatar-cache-v1';
+const BASE_PREFIX = (() => {
+  const el = typeof document !== 'undefined' && document.documentElement;
+  const bp = el && el.getAttribute('data-base-path');
+  if (bp && bp.startsWith('/')) return bp.replace(/\/+$/, '');
+  return '/nexus';
+})();
 const APP_SHELL = [
-  '/aichat/',
-  '/aichat/index.html',
-  '/aichat/styles.css?v=user-placeholder-v50',
-  '/aichat/app.js?v=user-placeholder-v54',
-  '/aichat/manifest.webmanifest',
-  '/aichat/icon.svg'
+  `${BASE_PREFIX}/`,
+  `${BASE_PREFIX}/index.html`,
+  `${BASE_PREFIX}/styles.css?v=user-placeholder-v50`,
+  `${BASE_PREFIX}/app.js?v=user-placeholder-v54`,
+  `${BASE_PREFIX}/manifest.webmanifest`,
+  `${BASE_PREFIX}/icon.svg`
 ];
 
-const IMAGE_PATH_RE = /^\/aichat\/assets\/(characters|local-characters|personas|backgrounds)\//;
+const IMAGE_PATH_RE = new RegExp(`^${BASE_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\/assets\\/(characters|local-characters|personas|backgrounds)\\//`);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -47,7 +53,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  if (!url.pathname.startsWith('/aichat')) return;
+  if (!url.pathname.startsWith(BASE_PREFIX)) return;
 
   if (IMAGE_PATH_RE.test(url.pathname) || request.destination === 'image') {
     event.respondWith(cacheFirstImage(request).catch(() => caches.match(request)));
@@ -55,7 +61,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match('/aichat/index.html')));
+    event.respondWith(fetch(request).catch(() => caches.match(`${BASE_PREFIX}/index.html`)));
     return;
   }
 

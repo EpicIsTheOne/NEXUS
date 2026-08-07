@@ -31,7 +31,7 @@ const fileEnv = parseEnvFile(ENV_PATH);
 const env = { ...fileEnv, ...process.env };
 
 const PORT = Number(env.PORT || 3000);
-const BASE_PATH = env.BASE_PATH || '/aichat';
+const BASE_PATH = env.BASE_PATH || '/nexus';
 const BACKEND_BASE_URL = String(env.BACKEND_BASE_URL || '').replace(/\/$/, '');
 const DEFAULT_MODEL = env.DEFAULT_MODEL || 'mistralai/mistral-nemo-instruct-2407';
 const APP_DATA_DIR = path.resolve(ROOT, env.APP_DATA_DIR || './data');

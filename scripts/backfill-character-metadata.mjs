@@ -93,7 +93,7 @@ async function loadRawChubMap() {
 }
 
 async function fetchBuffer(url) {
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 AIChatBackfill/1.0' } });
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 NEXUSBackfill/1.0' } });
   if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
   return Buffer.from(await res.arrayBuffer());
 }

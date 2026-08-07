@@ -187,15 +187,15 @@ async function login() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: USERNAME, password: PASSWORD }),
   });
-  if (!res.ok) throw new Error(`AIChat login failed (${res.status})`);
+  if (!res.ok) throw new Error(`NEXUS login failed (${res.status})`);
   const cookie = (res.headers.get('set-cookie') || '').split(';')[0];
-  if (!cookie) throw new Error('AIChat session cookie missing');
+  if (!cookie) throw new Error('NEXUS session cookie missing');
   return cookie;
 }
 
 async function loadExistingCharacters(cookie) {
   const res = await fetch(`${BASE_URL}/api/bootstrap`, { headers: { cookie } });
-  if (!res.ok) throw new Error(`AIChat bootstrap failed (${res.status})`);
+  if (!res.ok) throw new Error(`NEXUS bootstrap failed (${res.status})`);
   const json = await res.json();
   return json.characters || [];
 }
@@ -225,7 +225,7 @@ async function importCard(card, cookie) {
     }),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error || `AIChat import failed (${res.status})`);
+  if (!res.ok) throw new Error(json.error || `NEXUS import failed (${res.status})`);
   return json;
 }
 

@@ -24,10 +24,10 @@ docker compose up -d --build
 
 The committed compose file mirrors the live-style deployment. It includes:
 
-- `BASE_PATH=/aichat`
+- `BASE_PATH=/nexus`
 - a writable `/app/data` mount
 - optional OpenClaw auth profile mount
-- Traefik labels for `your-domain.example/aichat`
+- Traefik labels for `your-domain.example/nexus`
 - an external `proxy` network
 
 Adjust those for other hosts.
@@ -37,11 +37,11 @@ Adjust those for other hosts.
 If you deploy behind a reverse proxy, preserve the base path:
 
 ```env
-BASE_PATH=/aichat
+BASE_PATH=/nexus
 PUBLIC_APP_ORIGIN=https://your-domain.example
 ```
 
-Then route requests matching `/aichat` to the Node container/port.
+Then route requests matching `/nexus` to the Node container/port.
 
 ## Data backups
 

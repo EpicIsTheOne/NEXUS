@@ -7,7 +7,7 @@ const JSON_DIR = path.join(OUT_DIR, 'json');
 const PNG_DIR = path.join(OUT_DIR, 'png');
 const LOG_PATH = path.join(OUT_DIR, 'import-log.json');
 
-const BASE_URL = (process.env.AICHAT_BASE_URL || 'https://your-domain.example/aichat').replace(/\/$/, '');
+const BASE_URL = (process.env.AICHAT_BASE_URL || 'https://your-domain.example/nexus').replace(/\/$/, '');
 const USERNAME = process.env.AICHAT_USERNAME || 'Epic';
 const PASSWORD = process.env.AICHAT_PASSWORD || '';
 
@@ -114,7 +114,7 @@ async function login() {
 }
 
 async function fetchText(url) {
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 AIChatImporter/1.0' } });
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 NEXUSImporter/1.0' } });
   if (!res.ok) throw new Error(`Download failed (${res.status})`);
   return await res.text();
 }

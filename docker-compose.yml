@@ -7,7 +7,7 @@ services:
       - ./.env
     environment:
       PORT: "3000"
-      BASE_PATH: "/aichat"
+      BASE_PATH: "/nexus"
       BACKEND_BASE_URL: "http://100.72.220.117:1234/v1"
       DEFAULT_MODEL: "pkrd/cosmosrp-2.1:it"
       DEFAULT_PROVIDER_LABEL: "llm"
@@ -27,11 +27,11 @@ services:
       com.blobevm.managed: "1"
       traefik.enable: "true"
       traefik.docker.network: "proxy"
-      traefik.http.routers.aichat.entrypoints: "websecure"
-      traefik.http.routers.aichat.rule: "Host(`${PUBLIC_HOST:-your-domain.example}`) && PathPrefix(`/aichat`)"
-      traefik.http.routers.aichat.tls: "true"
-      traefik.http.routers.aichat.tls.certresolver: "myresolver"
-      traefik.http.services.aichat.loadbalancer.server.port: "3000"
+      traefik.http.routers.nexus.entrypoints: "websecure"
+      traefik.http.routers.nexus.rule: "Host(`${PUBLIC_HOST:-your-domain.example}`) && PathPrefix(`/nexus`)"
+      traefik.http.routers.nexus.tls: "true"
+      traefik.http.routers.nexus.tls.certresolver: "myresolver"
+      traefik.http.services.nexus.loadbalancer.server.port: "3000"
 
 networks:
   proxy:

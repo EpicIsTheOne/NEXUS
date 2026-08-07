@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-base-path="/nexus">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -129,13 +129,13 @@
       <h1>NEXUS API docs</h1>
       <p>Use the AIChat/NEXUS character system from scripts and apps. This page shows how to log in, get <span class="inline-code">characterId</span> values, create a history, send normal chat requests, and stream responses from Python.</p>
       <div class="docs-actions">
-        <a class="mini-btn" href="/aichat/">Back to app</a>
-        <a class="mini-btn secondary" href="/aichat/api/nexus/characters" target="_blank" rel="noopener noreferrer">Open characters JSON</a>
-        <a class="mini-btn secondary" href="/aichat/api/nexus/health" target="_blank" rel="noopener noreferrer">Open health JSON</a>
+        <a class="mini-btn" href="/nexus/">Back to app</a>
+        <a class="mini-btn secondary" href="/nexus/api/nexus/characters" target="_blank" rel="noopener noreferrer">Open characters JSON</a>
+        <a class="mini-btn secondary" href="/nexus/api/nexus/health" target="_blank" rel="noopener noreferrer">Open health JSON</a>
         <button class="mini-btn secondary" type="button" id="copy-session-cookie-btn">Copy session cookie</button>
       </div>
       <div class="docs-copy-result" id="copy-session-cookie-result"></div>
-      <p class="docs-note">NEXUS base path: <span class="inline-code">https://your-domain.example/aichat/api/nexus</span><br />TTS tagger endpoint: <span class="inline-code">https://your-domain.example/aichat/api/tts/tag</span><br />Tagged audio endpoint: <span class="inline-code">https://your-domain.example/aichat/api/tts/audio</span><br />Auth for v1 now supports either the same login session as the site or a Bearer NEXUS API key created from the admin settings panel. Admins can also disable the API globally.</p>
+      <p class="docs-note">NEXUS base path: <span class="inline-code">https://your-domain.example/nexus/api/nexus</span><br />TTS tagger endpoint: <span class="inline-code">https://your-domain.example/nexus/api/tts/tag</span><br />Tagged audio endpoint: <span class="inline-code">https://your-domain.example/nexus/api/tts/audio</span><br />Auth for v1 now supports either the same login session as the site or a Bearer NEXUS API key created from the admin settings panel. Admins can also disable the API globally.</p>
     </section>
 
     <section class="docs-grid">
@@ -167,7 +167,7 @@
       <h2>Python example: login and get character IDs</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 
 # 1) Log in using the same account you use on the site
@@ -195,7 +195,7 @@ print("Using characterId:", character_id)</pre>
       <h2>Python example: create a history and get <code>historyId</code></h2>
       <pre class="docs-code">import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -221,7 +221,7 @@ print(history)</pre>
       <h2>Python example: normal chat with an existing history</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -247,7 +247,7 @@ print(chat)</pre>
       <h2>Python example: one-off chat without a saved history</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -269,7 +269,7 @@ print(chat_res.json()["response"])</pre>
       <h2>Python example: create a history automatically from chat</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -296,7 +296,7 @@ print("response:", data["response"])</pre>
       <h2>Python example: use your own message history</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -324,7 +324,7 @@ print(chat_res.json()["response"])</pre>
       <pre class="docs-code">import json
 import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
@@ -386,7 +386,7 @@ with s.post(
         <tr><td><code>stream</code></td><td>boolean</td><td>no</td><td>When true, the endpoint attempts Fish realtime streaming before falling back to full audio generation.</td></tr>
       </table>
       <h3>Example request</h3>
-      <pre class="docs-code">POST https://your-domain.example/aichat/api/tts/tag
+      <pre class="docs-code">POST https://your-domain.example/nexus/api/tts/tag
 Content-Type: application/json
 
 {
@@ -409,7 +409,7 @@ Content-Type: application/json
       <h2>Python example: tag text for TTS</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 
 # Uses the same site login session. No API key is required/enabled right now.
@@ -436,7 +436,7 @@ print("Spoken text:", data["spokenText"])</pre>
       <h2>Python example: tag plain text without a character</h2>
       <pre class="docs-code">import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
 
@@ -479,7 +479,7 @@ print(res.json()["taggedText"])</pre>
         <li><code>X-TTS-Mode</code>: <code>stream</code>, <code>full</code>, or <code>cache</code>.</li>
       </ul>
       <h3>Example request</h3>
-      <pre class="docs-code">POST https://your-domain.example/aichat/api/tts/audio
+      <pre class="docs-code">POST https://your-domain.example/nexus/api/tts/audio
 Content-Type: application/json
 
 {
@@ -494,7 +494,7 @@ Content-Type: application/json
       <pre class="docs-code">from urllib.parse import unquote
 import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 
 # Uses the same site login session. No API key is required/enabled right now.
@@ -526,7 +526,7 @@ print("Spoken text:", unquote(res.headers.get("X-TTS-Spoken-Text", "")))</pre>
       <pre class="docs-code">from urllib.parse import unquote
 import requests
 
-BASE = "https://your-domain.example/aichat"
+BASE = "https://your-domain.example/nexus"
 s = requests.Session()
 s.post(f"{BASE}/api/auth/login", json={"username": "Epic", "password": "YOUR_PASSWORD"}).raise_for_status()
 
@@ -558,7 +558,7 @@ print("Audio tagged as:", unquote(audio.headers.get("X-TTS-Tagged-Text", "")))</
       "id": "local-some-character",
       "name": "Astra",
       "summary": "Sharp, fast, chaotic.",
-      "avatar": "/aichat/assets/local-characters/...",
+      "avatar": "/nexus/assets/local-characters/...",
       "tags": ["Roleplay", "Fantasy"],
       "source": "local"
     }
@@ -614,7 +614,7 @@ print("Audio tagged as:", unquote(audio.headers.get("X-TTS-Tagged-Text", "")))</
 
       copyBtn.addEventListener('click', async () => {
         try {
-          const res = await fetch('/aichat/api/auth/copy-session-cookie', {
+          const res = await fetch('/nexus/api/auth/copy-session-cookie', {
             method: 'POST',
             credentials: 'include',
           });

@@ -1,4 +1,4 @@
-# NEXUS / AIChat Setup Guide
+# NEXUS Setup Guide
 
 This guide is for getting NEXUS running without dragging private deployment state, Traefik labels, or Epic's server assumptions into your poor innocent machine.
 
@@ -33,7 +33,7 @@ sed -i 's|^DEFAULT_MODEL=.*|DEFAULT_MODEL=your-model-id|' .env
 npm run setup:check && npm start
 ```
 
-Open `http://localhost:3000/aichat/`.
+Open `http://localhost:3000/nexus/`.
 
 Expected output (minimum):
 - Login page loads
@@ -44,7 +44,7 @@ Edit `.env` and set the basics:
 
 ```env
 PORT=3000
-BASE_PATH=/aichat
+BASE_PATH=/nexus
 APP_DATA_DIR=./data
 PUBLIC_APP_ORIGIN=http://localhost:3000
 BACKEND_BASE_URL=http://127.0.0.1:1234/v1
@@ -67,7 +67,7 @@ npm start
 Open:
 
 ```text
-http://localhost:3000/aichat/
+http://localhost:3000/nexus/
 ```
 
 ## Quick start: local Docker
@@ -88,7 +88,7 @@ docker compose -f docker-compose.local.yml up -d --build
 
 Expected output (minimum):
 - Container starts without port-bind errors
-- App loads at `/aichat/`
+- App loads at `/nexus/`
 - Setup status shows backend reachable (`/models` check passes)
 
 ```bash
@@ -101,7 +101,7 @@ docker compose -f docker-compose.local.yml up -d --build
 Open:
 
 ```text
-http://localhost:3000/aichat/
+http://localhost:3000/nexus/
 ```
 
 If port `3000` is already busy, set for example:
@@ -111,7 +111,7 @@ HOST_PORT=4320
 PUBLIC_APP_ORIGIN=http://localhost:4320
 ```
 
-Then open `http://localhost:4320/aichat/` instead.
+Then open `http://localhost:4320/nexus/` instead.
 
 If your backend runs on the host and Docker cannot reach it, use `host.docker.internal` in `BACKEND_BASE_URL` (not `127.0.0.1`, which points to the container itself).
 
