@@ -2,266 +2,151 @@
 <html lang="en" data-base-path="/nexus">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=overlays-content" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0b0d13" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="NEXUS" />
-  <title>ＮＥＸＵＳ — character-first AI</title>
+  <title>ＮＥＸＵＳ</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=user-placeholder-v62" />
   <style>
-    :root {
-      --bg: #0b0d13; --panel: #0e1119; --panel-2: #111522;
-      --border: rgba(5,217,232,.18); --border-strong: rgba(5,217,232,.45);
-      --cyan: #05d9e8; --violet: #8b5cf6; --magenta: #ff2a6d; --mint: #01ffc3;
-      --fg: #e7f6ff; --muted: #9fb3c8; --dim: #6b7c91;
-      --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-    }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; }
-    body {
-      font-family: var(--mono); color: var(--fg); background: var(--bg);
-      min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased;
-      background-image:
-        radial-gradient(900px 500px at 78% -8%, rgba(139,92,246,.16), transparent 60%),
-        radial-gradient(700px 420px at 8% 108%, rgba(5,217,232,.12), transparent 60%),
-        repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px),
+    /* Landing borrows the app's own tokens/classes; this is only layout glue. */
+    .landing-wrap {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      background:
+        radial-gradient(900px 500px at 82% -10%, rgba(139, 92, 246, 0.14), transparent 60%),
+        radial-gradient(700px 420px at 6% 110%, rgba(5, 217, 232, 0.10), transparent 60%),
         linear-gradient(180deg, #0b0d13, #0d1018 60%, #0b0d13);
-      background-attachment: fixed;
     }
-    /* cursor-tracking nebula */
-    .nebula {
-      position: fixed; left: 0; top: 0; width: 540px; height: 540px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(5,217,232,.10), transparent 62%);
-      transform: translate(calc(var(--mx, 50vw) - 270px), calc(var(--my, 30vh) - 270px));
-      pointer-events: none; z-index: 0; opacity: .9; transition: opacity .5s ease;
+    .landing-rail {
+      border-right: 1px solid var(--border);
+      padding: 22px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      background: rgba(255, 255, 255, 0.012);
     }
-    /* boot / status bar */
-    .bootbar {
-      position: relative; z-index: 2; display: flex; align-items: center; gap: 12px;
-      padding: 8px 22px; font-size: .74rem; letter-spacing: .1em; color: var(--muted);
-      border-bottom: 1px solid var(--border); min-height: 30px;
+    .brand-line { color: var(--fg); }
+    .brand-line h1 { font-size: 1.05rem; letter-spacing: 0.18em; margin: 0; }
+    .brand-sub { color: var(--dim); font-size: 0.74rem; letter-spacing: 0.1em; margin-top: 4px; }
+    .rail-section-label {
+      font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 8px;
     }
-    .bootbar .status { margin-left: auto; display: flex; align-items: center; gap: 7px; color: var(--dim); }
-    .bootbar .led { width: 8px; height: 8px; border-radius: 50%; background: var(--magenta); box-shadow: 0 0 8px var(--magenta); }
-    .bootbar.online .led { background: var(--mint); box-shadow: 0 0 8px var(--mint); }
-    .bootbar .log { color: var(--cyan); }
-    .topbar {
-      position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 22px; font-size: .8rem; letter-spacing: .12em; color: var(--dim);
+    .rail-list { display: grid; gap: 8px; }
+    .rail-item {
+      display: flex; gap: 10px; align-items: center;
+      border: 1px solid var(--border); padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.02); color: var(--muted); font-size: 0.84rem;
     }
-    .topbar .brand { display: flex; align-items: center; gap: 10px; color: var(--fg); font-weight: 700; letter-spacing: .22em; }
-    .topbar .brand img { width: 22px; height: 22px; border-radius: 5px; }
-    .wrap { position: relative; z-index: 2; max-width: 1180px; margin: 0 auto; padding: 40px 22px 14px; }
-    .hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; }
-    .eyebrow { font-size: .72rem; letter-spacing: .34em; color: var(--cyan); text-transform: uppercase; margin-bottom: 14px; }
-    .wordmark {
-      font-size: clamp(3rem, 8vw, 5.4rem); font-weight: 800; line-height: .92; margin: 0 0 14px;
-      letter-spacing: .04em;
-      background: linear-gradient(115deg, var(--violet), var(--cyan) 52%, var(--magenta));
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-      text-shadow: 0 0 32px rgba(5,217,232,.18);
+    .rail-item .mk { color: var(--mint); font-weight: 700; }
+    .rail-net {
+      margin-top: auto; border: 1px solid var(--border); padding: 12px;
+      background: rgba(139, 92, 246, 0.05); color: var(--muted); font-size: 0.8rem; line-height: 1.5;
     }
-    .tagline { color: var(--muted); font-size: 1.02rem; line-height: 1.6; max-width: 46ch; margin: 0 0 26px; }
-    .tagline b { color: var(--fg); font-weight: 700; }
-    .features { list-style: none; padding: 0; margin: 0 0 30px; display: grid; gap: 8px; max-width: 460px; }
-    .features li {
-      display: flex; gap: 12px; align-items: center; font-size: .9rem; color: var(--muted);
-      border: 1px solid var(--border); background: rgba(5,217,232,.04); padding: 11px 14px;
+    .rail-net b { color: var(--fg); font-weight: 700; }
+    .landing-main {
+      display: grid; place-items: center; padding: 24px;
     }
-    .features .mk { color: var(--mint); font-weight: 700; }
-    .cta { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
-    .btn {
-      font-family: var(--mono); font-size: .95rem; font-weight: 700; letter-spacing: .04em;
-      text-decoration: none; padding: 14px 26px; border-radius: 0; cursor: pointer; position: relative;
-      border: 1px solid var(--cyan); color: #04121a; background: var(--cyan);
-      box-shadow: 2px 2px 0 rgba(5,217,232,.45); transition: transform .08s ease, box-shadow .08s ease, background .15s ease;
+    .landing-card {
+      width: min(460px, 100%);
     }
-    .btn:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 rgba(5,217,232,.5); }
-    .btn:active { transform: translate(2px,2px); box-shadow: 0 0 0 rgba(5,217,232,0); }
-    .btn .caret { animation: blink 1.05s steps(1) infinite; color: #04121a; }
-    .btn:hover::after { content: " >>"; }
-    .btn.ghost { background: transparent; color: var(--fg); border-color: var(--border-strong); box-shadow: none; }
-    .btn.ghost:hover { background: rgba(5,217,232,.08); transform: none; }
-    .btn.ghost:hover::after { content: ""; }
-    /* faux app preview */
-    .preview {
-      background: linear-gradient(180deg, var(--panel-2), var(--panel));
-      border: 1px solid var(--border); box-shadow: 0 24px 60px rgba(0,0,0,.45);
-      padding: 0; overflow: hidden;
+    .landing-tagline {
+      color: var(--muted); margin: 0 0 18px; font-size: 0.92rem; line-height: 1.55;
     }
-    .pv-bar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: .76rem; color: var(--dim); }
-    .pv-bar .dot { width: 9px; height: 9px; border-radius: 50%; }
-    .pv-bar .spacer { flex: 1; }
-    .pv-chip { border: 1px solid var(--border); padding: 3px 8px; color: var(--muted); }
-    .pv-body { padding: 18px 16px; display: grid; gap: 14px; }
-    .pv-char { display: flex; gap: 12px; align-items: center; border: 1px solid var(--border); padding: 12px; background: rgba(139,92,246,.06); }
-    .pv-char .ava { width: 44px; height: 44px; border-radius: 0; background: linear-gradient(135deg, var(--violet), var(--cyan)); flex: none; }
-    .pv-char .nm { font-weight: 700; color: var(--fg); }
-    .pv-char .st { font-size: .74rem; color: var(--muted); }
-    .bubble { border: 1px solid var(--border); padding: 12px 14px; font-size: .86rem; line-height: 1.55; color: var(--muted); background: rgba(255,255,255,.015); min-height: 1.2em; }
-    .bubble.you { border-color: rgba(1,255,195,.3); color: var(--fg); }
-    .pv-foot { padding: 10px 14px; border-top: 1px solid var(--border); font-size: .72rem; color: var(--dim); display: flex; gap: 10px; }
-    /* ticker */
-    .ticker { position: relative; z-index: 2; margin-top: 22px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: rgba(5,217,232,.03); overflow: hidden; white-space: nowrap; }
-    .ticker .track { display: inline-block; padding: 10px 0; animation: scroll 26s linear infinite; }
-    .ticker .track span { color: var(--muted); font-size: .8rem; letter-spacing: .06em; padding: 0 26px; }
-    .ticker .track .tag { color: var(--cyan); }
-    .ticker .track .live { color: var(--mint); }
-    .foot { position: relative; z-index: 2; text-align: center; color: var(--dim); font-size: .76rem; letter-spacing: .08em; padding: 18px 16px 30px; }
-    .foot b { color: var(--muted); font-weight: 500; }
-    @keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
-    @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    @media (max-width: 880px) {
-      .hero { grid-template-columns: 1fr; gap: 28px; }
-      .preview { order: -1; }
-      .wrap { padding-top: 28px; }
+    .landing-tagline b { color: var(--fg); font-weight: 700; }
+    .landing-foot {
+      margin-top: 16px; color: var(--dim); font-size: 0.72rem; letter-spacing: 0.06em;
+      text-align: center;
     }
-    @media (prefers-reduced-motion: no-preference) {
-      .wordmark { animation: flicker 5s infinite; }
-      .ticker .track { animation: scroll 26s linear infinite; }
-    }
-    @keyframes flicker {
-      0%, 88%, 100% { text-shadow: 0 0 32px rgba(5,217,232,.18); }
-      90% { text-shadow: 2px 0 rgba(255,42,109,.55), -2px 0 rgba(5,217,232,.55), 0 0 32px rgba(5,217,232,.18); }
-      93% { text-shadow: -2px 0 rgba(255,42,109,.55), 2px 0 rgba(5,217,232,.55); }
-      96% { text-shadow: 0 0 32px rgba(5,217,232,.18); }
+    @media (max-width: 760px) {
+      .landing-wrap { grid-template-columns: 1fr; }
+      .landing-rail { display: none; }
     }
   </style>
 </head>
 <body>
-  <div class="nebula" aria-hidden="true"></div>
+  <div class="landing-wrap">
+    <aside class="landing-rail">
+      <div class="brand-line">
+        <h1>ＮＥＸＵＳ</h1>
+        <div class="brand-sub">character-first AI</div>
+      </div>
 
-  <div class="bootbar" id="bootbar">
-    <span class="log" id="bootlog">&gt; establishing secure channel to NEXUS…</span>
-    <span class="status" id="bootstatus"><span class="led"></span> connecting</span>
-  </div>
-
-  <div class="topbar">
-    <div class="brand"><img src="icon.svg" alt="" /> NEXUS</div>
-    <div>self-hosted · private</div>
-  </div>
-
-  <div class="wrap">
-    <div class="hero">
-      <div class="lead">
-        <div class="eyebrow">◇ character-first AI</div>
-        <h1 class="wordmark" data-text="ＮＥＸＵＳ">ＮＥＸＵＳ</h1>
-        <p class="tagline">Immersive roleplay with <b>persistent memory</b>, <b>Fish Audio</b> voice that actually acts, and your own library — hosted by you, on your hardware.</p>
-        <ul class="features">
-          <li><span class="mk">✦</span> Personas, memory, and lore that survive the session</li>
-          <li><span class="mk">✦</span> Fish Audio TTS with emotion tagging</li>
-          <li><span class="mk">✦</span> On-demand image generation inside the chat</li>
-          <li><span class="mk">✦</span> NEXUS NETWORK + scriptable API</li>
-        </ul>
-        <div class="cta">
-          <a class="btn" id="loginBtn" href="./chat">Log in<span class="caret">_</span></a>
-          <a class="btn ghost" href="./chat">Browse characters</a>
+      <div>
+        <div class="rail-section-label">What's inside</div>
+        <div class="rail-list">
+          <div class="rail-item"><span class="mk">✦</span> Personas, memory &amp; lore that persist</div>
+          <div class="rail-item"><span class="mk">✦</span> Fish Audio TTS with emotion</div>
+          <div class="rail-item"><span class="mk">✦</span> On-demand image generation</div>
+          <div class="rail-item"><span class="mk">✦</span> NEXUS NETWORK + scriptable API</div>
         </div>
       </div>
 
-      <div class="preview" aria-hidden="true">
-        <div class="pv-bar">
-          <span class="dot" style="background:var(--magenta)"></span>
-          <span class="dot" style="background:var(--violet)"></span>
-          <span class="dot" style="background:var(--mint)"></span>
-          <span class="spacer"></span>
-          <span class="pv-chip">Recents</span>
-          <span class="pv-chip">TTS</span>
-          <span class="pv-chip">Profile ▾</span>
-        </div>
-        <div class="pv-body">
-          <div class="pv-char">
-            <div class="ava"></div>
-            <div>
-              <div class="nm">Captain Haddock</div>
-              <div class="st">online · local model</div>
-            </div>
+      <div class="rail-net">
+        <b>ＮＥＸＵＳ ＮＥＴＷＯＲＫ</b><br />
+        Browse, rank, stalk tags, and pick your next bad idea. Self-hosted. Private. Yours.
+      </div>
+    </aside>
+
+    <main class="landing-main">
+      <div class="auth-card landing-card">
+        <div class="eyebrow">Access required</div>
+        <h1>ＮＥＸＵＳ</h1>
+        <p class="landing-tagline">Log in before touching characters, history, or anything fun. <b>Immersive roleplay</b> on your own hardware.</p>
+
+        <form id="login-form" class="settings-grid single-column-form auth-form" autocomplete="on">
+          <label class="field"><span>Username</span><input id="login-username" name="username" autocomplete="username" required placeholder="Epic" /></label>
+          <label class="field"><span>Password</span><input id="login-password" name="current-password" type="password" autocomplete="current-password" required placeholder="••••••••" /></label>
+          <div id="login-error" class="meta-line hidden"></div>
+          <div class="dialog-actions split-actions auth-actions">
+            <button type="submit" id="login-submit">Log in</button>
           </div>
-          <div class="bubble" id="typed"></div>
-          <div class="bubble you" id="reply" style="opacity:0">Missed you too. Pull up the NEXUS NETWORK tab — I found a character worth meeting.</div>
-        </div>
-        <div class="pv-foot"><span>◆ backend: ready</span><span>◆ 4 local · network live</span></div>
+        </form>
+
+        <div class="landing-foot">No account? Ask the admin to spin one up.</div>
       </div>
-    </div>
+    </main>
   </div>
-
-  <div class="ticker" aria-hidden="true">
-    <div class="track" id="track"></div>
-  </div>
-
-  <div class="foot"><b>NEXUS</b> — immersive character AI. No cloud. No watchmen.<span class="caret">_</span></div>
 
   <script>
+    // Reuse the app's real login flow so the button actually works.
     (function () {
-      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var form = document.getElementById('login-form');
+      var errEl = document.getElementById('login-error');
+      if (!form) return;
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        errEl.classList.add('hidden');
+        var username = document.getElementById('login-username').value.trim();
+        var password = document.getElementById('login-password').value;
+        try {
+          var res = await fetch('./api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ username: username, password: password })
+          });
+          var data = await res.json().catch(function () { return {}; });
+          if (!res.ok || !data.ok) {
+            errEl.textContent = (data && data.error) ? data.error : 'Login failed.';
+            errEl.classList.remove('hidden');
+            return;
+          }
+          window.location.replace('./chat');
+        } catch (err) {
+          errEl.textContent = 'Network error — try again.';
+          errEl.classList.remove('hidden');
+        }
+      });
 
-      // Cursor-tracking nebula
-      var nebula = document.querySelector('.nebula');
-      if (nebula && !reduce) {
-        window.addEventListener('mousemove', function (e) {
-          document.documentElement.style.setProperty('--mx', e.clientX + 'px');
-          document.documentElement.style.setProperty('--my', e.clientY + 'px');
-        });
-        window.addEventListener('mouseleave', function () { nebula.style.opacity = '0'; });
-        window.addEventListener('mouseenter', function () { nebula.style.opacity = '.9'; });
-      }
-
-      // Boot/connect sequence
-      var bootbar = document.getElementById('bootbar');
-      var bootlog = document.getElementById('bootlog');
-      var bootstatus = document.getElementById('bootstatus');
-      function goOnline() {
-        bootlog.textContent = '> secure channel established · NEXUS';
-        bootbar.classList.add('online');
-        bootstatus.innerHTML = '<span class="led"></span> online';
-      }
-      if (reduce) { goOnline(); }
-      else { setTimeout(goOnline, 1100); }
-
-      // Typing character preview
-      var typed = document.getElementById('typed');
-      var reply = document.getElementById('reply');
-      var line = "Thunderation! You're late, and the kettle's gone cold. Sit — tell me what mischief we're about today.";
-      if (reduce) {
-        typed.textContent = line; reply.style.opacity = '1';
-      } else {
-        var i = 0;
-        (function type() {
-          if (i <= line.length) { typed.textContent = line.slice(0, i); i++; setTimeout(type, 26); }
-          else { reply.style.transition = 'opacity .5s'; reply.style.opacity = '1'; }
-        })();
-      }
-
-      // Network ticker (real local characters)
-      var names = ['Bender', 'Capitaine Haddock', 'Firefly', 'Gollum', 'NEXUS NETWORK', 'Fish Audio TTS', 'OpenClaw bridge', 'self-hosted'];
-      var track = document.getElementById('track');
-      var html = '';
-      for (var r = 0; r < 2; r++) {
-        names.forEach(function (n) {
-          var cls = (n === 'NEXUS NETWORK') ? 'tag' : (n === 'self-hosted' ? 'live' : '');
-          html += '<span class="' + cls + '">◆ ' + n + '</span>';
-        });
-      }
-      track.innerHTML = html;
-
-      // Log in: brief "opening channel" flash then navigate (reduced-motion safe)
-      var login = document.getElementById('loginBtn');
-      if (login && !reduce) {
-        login.addEventListener('click', function (e) {
-          // let the real href navigate; just flash feedback
-          var orig = login.innerHTML;
-          login.innerHTML = '>> opening channel…';
-          setTimeout(function () { login.innerHTML = orig; }, 600);
-        });
-      }
-
-      // Already-authed visitors skip the landing.
+      // Already-authed visitors skip the landing and go straight to the app.
       fetch('./api/auth/session', { credentials: 'same-origin' })
         .then(function (r) { return r.json(); })
         .then(function (s) { if (s && s.authenticated) window.location.replace('./chat'); })

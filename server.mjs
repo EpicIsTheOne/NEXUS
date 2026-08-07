@@ -5908,10 +5908,13 @@ app.get(`${BASE_PATH}/public/replicate/:file`, (req, res) => {
   sendCacheableAsset(res, path.join(REPLICATE_ASSET_DIR, file));
 });
 
-// Root serves the same app shell as /chat, so the landing looks identical to
-// the app itself. Anonymous visitors see the in-app auth screen (with the Log
-// in form); authenticated visitors get the full app. No separate marketing page.
-app.get(`${BASE_PATH}/`, sendAppShell);
+// Root serves the NEXUS landing page (built from the app's own CSS/tokens so it
+// matches the app's look) with a working login form. Authenticated visitors are
+// redirected to the app shell by an inline script in landing.html.
+app.get(`${BASE_PATH}/`, (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(process.cwd(), 'public', 'landing.html'));
+});
 
 // Authenticated app shell at /chat (and any subpath). Anonymous visitors are
 // bounced back to the landing page; the app shell itself shows the login form
