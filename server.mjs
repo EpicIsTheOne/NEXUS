@@ -29,6 +29,16 @@ function loadDotEnvFile(filePath = path.join(process.cwd(), '.env')) {
 loadDotEnvFile();
 
 const app = express();
+
+// Legacy redirect: anything under the old /aichat base path 301s to /nexus
+// so old bookmarks and links keep working after the rebrand.
+app.use((req, res, next) => {
+  if (req.path === '/aichat' || req.path.startsWith('/aichat/')) {
+    const tail = req.path.slice('/aichat'.length) || '/';
+    return res.redirect(301, `${BASE_PATH}${tail}`);
+  }
+  next();
+});
 const PORT = Number(process.env.PORT || 3000);
 const BASE_PATH = process.env.BASE_PATH || '/nexus';
 const BACKEND_BASE_URL = (process.env.BACKEND_BASE_URL || '').replace(/\/$/, '');

@@ -32,6 +32,11 @@ services:
       traefik.http.routers.nexus.tls: "true"
       traefik.http.routers.nexus.tls.certresolver: "myresolver"
       traefik.http.services.nexus.loadbalancer.server.port: "3000"
+      # Legacy route: send old /aichat* traffic to the app, which 301s to /nexus*.
+      traefik.http.routers.nexus-legacy.entrypoints: "websecure"
+      traefik.http.routers.nexus-legacy.rule: "Host(`${PUBLIC_HOST:-your-domain.example}`) && PathPrefix(`/aichat`)"
+      traefik.http.routers.nexus-legacy.tls: "true"
+      traefik.http.routers.nexus-legacy.tls.certresolver: "myresolver"
 
 networks:
   proxy:
